@@ -1,180 +1,247 @@
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { FileText, Grid3X3, List, Plus, FolderOpen, Tag, FileSpreadsheet, Presentation, Image as ImageIcon, FileArchive } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useLibraryStore } from '@/stores/library-store';
+import { useDocumentStore } from '@/stores/document-store';
+import { pickAndImportDocument } from '@/services/import-service';
+import { deleteDocument, shareDocument } from '@/services/file-operations';
+import { FileActionsSheet } from '@/features/file-manager/file-actions';
+import { CollectionPicker } from '@/features/organization/collection-picker';
+import { TagPicker } from '@/features/organization/tag-picker';
+import type { Document, DocumentType, SortBy } from '@/types';
+import { EmptyState, ErrorState } from '@/components/empty-state';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
-
-  return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
-
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
-  );
+function getReaderRoute(type: DocumentType, id: string): string {
+  switch (type) {
+    case 'pdf': return `/reader/pdf/${id}`;
+    case 'epub': return `/reader/epub/${id}`;
+    case 'doc': case 'docx': case 'xls': case 'xlsx': case 'ppt': case 'pptx': return `/reader/office/${id}`;
+    case 'txt': case 'md': case 'code': case 'csv': case 'rtf': return `/reader/text/${id}`;
+    case 'image': return `/reader/image/${id}`;
+    case 'archive': return `/reader/archive/${id}`;
+    default: return `/reader/text/${id}`;
+  }
 }
 
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
-});
+function getTypeIcon(type: DocumentType) {
+  switch (type) {
+    case 'xls': case 'xlsx': case 'csv': return FileSpreadsheet;
+    case 'ppt': case 'pptx': return Presentation;
+    case 'image': return ImageIcon;
+    case 'archive': return FileArchive;
+    default: return FileText;
+  }
+}
+
+export default function LibraryScreen() {
+  const c = useTheme();
+  const { width } = useWindowDimensions();
+  const documents = useLibraryStore((s) => s.documents);
+  const categories = useLibraryStore((s) => s.categories);
+  const selectedCategory = useLibraryStore((s) => s.selectedCategory);
+  const viewMode = useLibraryStore((s) => s.viewMode);
+  const sortBy = useLibraryStore((s) => s.sortBy);
+  const sortOrder = useLibraryStore((s) => s.sortOrder);
+  const isLoading = useLibraryStore((s) => s.isLoading);
+  const setSelectedCategory = useLibraryStore((s) => s.setSelectedCategory);
+  const setViewMode = useLibraryStore((s) => s.setViewMode);
+  const setSortBy = useLibraryStore((s) => s.setSortBy);
+  const setSortOrder = useLibraryStore((s) => s.setSortOrder);
+  const fetchDocuments = useLibraryStore((s) => s.fetchDocuments);
+  const fetchCategories = useLibraryStore((s) => s.fetchCategories);
+  const toggleFavorite = useDocumentStore((s) => s.toggleFavorite);
+  const favoriteIds = useDocumentStore((s) => s.favoriteIds);
+
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [showActions, setShowActions] = useState(false);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
+  const [showTagPicker, setShowTagPicker] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setFetchError(null);
+        await Promise.all([fetchDocuments(), fetchCategories()]);
+      } catch (e: any) {
+        setFetchError(e.message || 'Failed to load library');
+      }
+    };
+    load();
+  }, []);
+
+  const sortOptions: { key: SortBy; label: string }[] = [
+    { key: 'date', label: 'Date' }, { key: 'name', label: 'Name' },
+    { key: 'type', label: 'Type' }, { key: 'size', label: 'Size' },
+  ];
+
+  const handleImport = async () => {
+    setImporting(true);
+    const doc = await pickAndImportDocument();
+    if (doc) { fetchDocuments(); fetchCategories(); }
+    setImporting(false);
+  };
+
+  const gridColumnCount = width > 600 ? 3 : 2;
+  const gridItemWidth = (width - 40 - (gridColumnCount - 1) * 12) / gridColumnCount;
+
+  const renderGridItem = ({ item }: { item: Document }) => {
+    const TypeIcon = getTypeIcon(item.type);
+    return (
+      <TouchableOpacity
+        style={{ width: gridItemWidth, backgroundColor: c.surface, borderRadius: 14, padding: 14, marginBottom: 12 }}
+        onPress={() => router.push(getReaderRoute(item.type, item.id))}
+        onLongPress={() => { setSelectedDoc(item); setShowActions(true); }}
+        accessibilityLabel={`${item.name}, ${item.type.toUpperCase()}${item.size ? `, ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}${favoriteIds.has(item.id) ? ', favorited' : ''}`}
+        accessibilityHint="Double tap to open, long press for actions"
+        accessibilityRole="button"
+      >
+        <View style={{ width: '100%', height: gridItemWidth * 1.3, borderRadius: 10, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {item.thumbnailPath ? (
+            <Image source={{ uri: item.thumbnailPath }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={200} />
+          ) : (
+            <TypeIcon size={32} color={c.primary} />
+          )}
+        </View>
+        <Text style={{ fontSize: 13, fontWeight: '500', color: c.text, marginTop: 8 }} numberOfLines={2}>{item.name}</Text>
+        <Text style={{ fontSize: 11, color: c.textSecondary, marginTop: 2 }}>
+          {item.type.toUpperCase()} · {item.size ? `${(item.size / 1024 / 1024).toFixed(1)} MB` : '--'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderListItem = ({ item }: { item: Document }) => {
+    const TypeIcon = getTypeIcon(item.type);
+    return (
+      <TouchableOpacity
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8 }}
+        onPress={() => router.push(getReaderRoute(item.type, item.id))}
+        onLongPress={() => { setSelectedDoc(item); setShowActions(true); }}
+        accessibilityLabel={`${item.name}, ${item.type.toUpperCase()}${item.size ? `, ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}${favoriteIds.has(item.id) ? ', favorited' : ''}`}
+        accessibilityHint="Double tap to open, long press for actions"
+        accessibilityRole="button"
+      >
+        <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {item.thumbnailPath ? (
+            <Image source={{ uri: item.thumbnailPath }} style={{ width: 44, height: 44 }} contentFit="cover" transition={200} />
+          ) : (
+            <TypeIcon size={20} color={c.primary} />
+          )}
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }} numberOfLines={1}>{item.name}</Text>
+          <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>
+            {item.type.toUpperCase()} · {item.size ? `${(item.size / 1024 / 1024).toFixed(1)} MB` : '--'}
+            {favoriteIds.has(item.id) ? ' · ★' : ''}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+        <Text style={{ fontSize: 28, fontWeight: '700', color: c.text }}>Library</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity onPress={handleImport} style={{ padding: 6 }} accessibilityLabel="Import document" accessibilityRole="button">
+            <Plus size={22} color={c.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/library/collections')} style={{ padding: 6 }} accessibilityLabel="Open collections" accessibilityRole="button">
+            <FolderOpen size={22} color={c.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/library/tags')} style={{ padding: 6 }} accessibilityLabel="Open tags" accessibilityRole="button">
+            <Tag size={22} color={c.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <FlatList
+        horizontal showsHorizontalScrollIndicator={false}
+        data={[{ type: 'all', count: 0 }, ...categories]}
+        keyExtractor={(item) => item.type}
+        contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 12 }}
+        renderItem={({ item }) => {
+          const active = selectedCategory === item.type || (!selectedCategory && item.type === 'all');
+          return (
+            <TouchableOpacity
+              style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: active ? c.primary : c.surface }}
+              onPress={() => setSelectedCategory(item.type === 'all' ? null : item.type)}
+              accessibilityLabel={`Filter by ${item.type === 'all' ? 'all types' : item.type}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '500', color: active ? '#FFF' : c.textSecondary }}>
+                {item.type === 'all' ? 'All' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                {item.type !== 'all' ? ` (${item.count})` : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+          {sortOptions.map((opt) => (
+            <TouchableOpacity key={opt.key} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: sortBy === opt.key ? c.primaryContainer : 'transparent' }}
+              onPress={() => { if (sortBy === opt.key) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); else { setSortBy(opt.key); setSortOrder('desc'); } }}
+              accessibilityLabel={`Sort by ${opt.label}${sortBy === opt.key ? `, currently ${sortOrder === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sortBy === opt.key }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '500', color: sortBy === opt.key ? c.primary : c.textSecondary }}>
+                {opt.label} {sortBy === opt.key ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <TouchableOpacity onPress={() => setViewMode('list')} style={{ padding: 6, opacity: viewMode === 'list' ? 1 : 0.4 }} accessibilityLabel="Switch to list view" accessibilityRole="button" accessibilityState={{ selected: viewMode === 'list' }}><List size={18} color={c.text} /></TouchableOpacity>
+          <TouchableOpacity onPress={() => setViewMode('grid')} style={{ padding: 6, opacity: viewMode === 'grid' ? 1 : 0.4 }} accessibilityLabel="Switch to grid view" accessibilityRole="button" accessibilityState={{ selected: viewMode === 'grid' }}><Grid3X3 size={18} color={c.text} /></TouchableOpacity>
+        </View>
+      </View>
+
+      <FlatList
+        data={documents}
+        keyExtractor={(item) => item.id}
+        numColumns={viewMode === 'grid' ? gridColumnCount : 1}
+        renderItem={viewMode === 'grid' ? renderGridItem : renderListItem}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        columnWrapperStyle={viewMode === 'grid' ? { gap: 12 } : undefined}
+        refreshing={isLoading}
+        onRefresh={() => { fetchDocuments(); fetchCategories(); }}
+        ListEmptyComponent={
+          fetchError ? <ErrorState message={fetchError} onRetry={() => { setFetchError(null); fetchDocuments(); fetchCategories(); }} />
+          : <EmptyState icon={FileText} title="No documents yet" subtitle="Import your first document to get started" actionLabel="Import Document" onAction={handleImport} />
+        }
+      />
+
+      <FileActionsSheet
+        visible={showActions}
+        fileName={selectedDoc?.name || ''}
+        onClose={() => { setShowActions(false); setSelectedDoc(null); }}
+        onRename={() => {}}
+        onDelete={async () => { if (selectedDoc) { await deleteDocument(selectedDoc.id); fetchDocuments(); } }}
+        onShare={async () => { if (selectedDoc) await shareDocument(selectedDoc.id); }}
+        onInfo={() => {}}
+        onOpenWith={() => {}}
+        onAddToCollection={() => { setShowActions(false); setShowCollectionPicker(true); }}
+        onAddTag={() => { setShowActions(false); setShowTagPicker(true); }}
+      />
+
+      {selectedDoc && (
+        <>
+          <CollectionPicker visible={showCollectionPicker} documentId={selectedDoc.id} onClose={() => setShowCollectionPicker(false)} />
+          <TagPicker visible={showTagPicker} documentId={selectedDoc.id} onClose={() => setShowTagPicker(false)} />
+        </>
+      )}
+    </SafeAreaView>
+  );
+}

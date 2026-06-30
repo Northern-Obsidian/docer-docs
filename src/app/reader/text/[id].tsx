@@ -1,0 +1,155 @@
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
+import { ArrowLeft, Bookmark, Highlighter, StickyNote, WrapText, ListOrdered } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { WebView } from 'react-native-webview';
+
+import { useTheme } from '@/hooks/use-theme';
+import { useThemeStore } from '@/stores/theme-store';
+import { loadDocument } from '@/services/reader-loader';
+import { getHighlightedHtml, getPlainTextHtml, getMarkdownHtml, getLanguageFromExtension } from '@/readers/text/text-engine';
+import { AddBookmarkModal } from '@/features/annotations/add-bookmark-modal';
+import { AddNoteModal } from '@/features/annotations/add-note-modal';
+import { getDb } from '@/db/connection';
+import { getBookmarkByPage, deleteBookmarkByPage } from '@/db/bookmarks';
+
+type TextRenderMode = 'plain' | 'highlighted' | 'markdown';
+
+export default function TextReaderScreen() {
+  const c = useTheme();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [content, setContent] = useState<string | null>(null);
+  const [rawText, setRawText] = useState('');
+  const [renderMode, setRenderMode] = useState<TextRenderMode>('plain');
+  const [fileName, setFileName] = useState('Document');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [wordWrap, setWordWrap] = useState(true);
+  const [showLineNumbers, setShowLineNumbers] = useState(false);
+  const isDark = useThemeStore((s) => s.theme !== 'light');
+  const webViewRef = useRef<WebView>(null);
+
+  const regenContent = useCallback(() => {
+    if (!rawText) return;
+    const opts = { wordWrap, showLineNumbers };
+    if (renderMode === 'markdown') setContent(getMarkdownHtml(rawText, isDark, opts));
+    else if (renderMode === 'highlighted') setContent(getHighlightedHtml(rawText, 'text', isDark, opts));
+    else setContent(getPlainTextHtml(rawText, isDark, opts));
+  }, [rawText, renderMode, isDark, wordWrap, showLineNumbers]);
+
+  useEffect(() => { regenContent(); }, [regenContent]);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      const { doc, content: fileContent } = await loadDocument(id);
+      if (!doc) { setError('Document not found'); setLoading(false); return; }
+      setFileName(doc.name);
+      const text = fileContent || '';
+
+      if (fileContent === null && doc.type === 'code') {
+        setRawText('// Unable to load file content');
+        setRenderMode('highlighted');
+        setLoading(false);
+        return;
+      }
+
+      const ext = doc.name.split('.').pop() || '';
+      if (['md', 'mdx'].includes(ext)) {
+        setRawText(text);
+        setRenderMode('markdown');
+      } else {
+        const lang = getLanguageFromExtension(ext);
+        setRawText(text);
+        setRenderMode(lang ? 'highlighted' : 'plain');
+      }
+      setLoading(false);
+    })();
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      const db = await getDb();
+      const bm = await getBookmarkByPage(db, id, 1);
+      setIsBookmarked(!!bm);
+    })();
+  }, [id]);
+
+  const handleToggleBookmark = useCallback(async () => {
+    if (!id) return;
+    const db = await getDb();
+    if (isBookmarked) {
+      await deleteBookmarkByPage(db, id, 1);
+      setIsBookmarked(false);
+    } else {
+      setShowBookmarkModal(true);
+    }
+  }, [id, isBookmarked]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={c.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: c.surface }}>
+          <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={24} color={c.text} /></TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: c.error, fontSize: 16 }}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border }}>
+        <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={24} color={c.text} /></TouchableOpacity>
+        <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: c.text, textAlign: 'center' }} numberOfLines={1}>{fileName}</Text>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <TouchableOpacity onPress={() => { setWordWrap(!wordWrap); }} style={{ padding: 6, opacity: wordWrap ? 1 : 0.4 }}>
+            <WrapText size={20} color={c.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { setShowLineNumbers(!showLineNumbers); }} style={{ padding: 6, opacity: showLineNumbers ? 1 : 0.4 }}>
+            <ListOrdered size={20} color={c.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleToggleBookmark} style={{ padding: 6 }}>
+            <Bookmark size={20} color={isBookmarked ? c.primary : c.textSecondary} fill={isBookmarked ? c.primary : 'transparent'} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <WebView ref={webViewRef} source={{ html: content || '' }} style={{ flex: 1, backgroundColor: 'transparent' }} javaScriptEnabled={false} />
+
+      {id && (
+        <>
+          <AddBookmarkModal
+            visible={showBookmarkModal}
+            documentId={id}
+            page={1}
+            onClose={() => setShowBookmarkModal(false)}
+            onSaved={() => setIsBookmarked(true)}
+          />
+          <AddNoteModal
+            visible={showNoteModal}
+            documentId={id}
+            page={1}
+            onClose={() => setShowNoteModal(false)}
+            onSaved={() => {}}
+          />
+        </>
+      )}
+    </SafeAreaView>
+  );
+}

@@ -1,35 +1,16 @@
+import { View, Text } from 'react-native';
 import type { ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
 
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+import { useTheme } from '@/hooks/use-theme';
 
-import { Spacing } from '@/constants/theme';
-
-type HintRowProps = {
-  title?: string;
-  hint?: ReactNode;
-};
-
-export function HintRow({ title = 'Try editing', hint = 'app/index.tsx' }: HintRowProps) {
+export function HintRow({ title, hint }: { title: string; hint: ReactNode }) {
+  const c = useTheme();
   return (
-    <View style={styles.stepRow}>
-      <ThemedText type="small">{title}</ThemedText>
-      <ThemedView type="backgroundSelected" style={styles.codeSnippet}>
-        <ThemedText themeColor="textSecondary">{hint}</ThemedText>
-      </ThemedView>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Text style={{ color: c.text, fontSize: 16 }}>{title}</Text>
+      <View style={{ borderRadius: 8, paddingVertical: 2, paddingHorizontal: 8 }}>
+        {hint}
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  stepRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  codeSnippet: {
-    borderRadius: Spacing.two,
-    paddingVertical: Spacing.half,
-    paddingHorizontal: Spacing.two,
-  },
-});
