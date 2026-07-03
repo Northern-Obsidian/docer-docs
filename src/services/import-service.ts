@@ -2,6 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { getDb } from '@/db/connection';
 import { insertDocument, getDocumentByPath } from '@/db/documents';
+import { indexDocumentContent } from '@/db/content-index';
 import type { Document, DocumentType } from '@/types';
 
 const EXTENSION_TYPE_MAP: Record<string, DocumentType> = {
@@ -68,6 +69,9 @@ export async function importFile(uri: string, fileName: string, mimeType: string
     };
 
     await insertDocument(db, doc);
+
+    indexDocumentContent(db, id, uri, type).catch(() => {});
+
     return doc;
   } catch {
     return null;

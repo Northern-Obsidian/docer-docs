@@ -1,4 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { searchContent } from './content-index';
 
 export interface SearchResult {
   documentId: string;
@@ -10,17 +11,7 @@ export interface SearchResult {
 
 export async function searchAll(db: SQLiteDatabase, query: string): Promise<SearchResult[]> {
   if (!query.trim()) return [];
-  const term = `${query}*`;
-  return db.getAllAsync<SearchResult>(
-    `SELECT d.id as documentId, d.name as documentName, d.type as documentType,
-            d.name as snippet, 1 as rank
-     FROM documents d
-     JOIN documents_fts fts ON d.rowid = fts.rowid
-     WHERE documents_fts MATCH ?
-     ORDER BY rank
-     LIMIT 50`,
-    term
-  );
+  return searchContent(db, query);
 }
 
 export async function searchNotes(db: SQLiteDatabase, query: string) {

@@ -16,6 +16,7 @@ interface SearchResult {
   documentType: string;
   snippet: string;
   rank: number;
+  matchType: 'name' | 'content';
 }
 
 interface SearchState {

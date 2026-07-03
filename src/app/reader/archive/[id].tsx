@@ -1,52 +1,109 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { router } from 'expo-router';
-import { ArrowLeft, File, Folder, FileArchive, Search, Download } from 'lucide-react-native';
+import { ArrowLeft, Folder, FileArchive, Search, Download, ChevronLeft } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useDocumentStore } from '@/stores/document-store';
 import { getDb } from '@/db/connection';
 import { getDocumentById } from '@/db/documents';
+import { listArchiveEntries, extractEntry, type ArchiveEntry } from '@/readers/archive/archive-engine';
 
-interface ArchiveEntry {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  size: number;
-}
-
-const MOCK_ENTRIES: ArchiveEntry[] = [
-  { name: 'documents/', path: '/documents/', isDirectory: true, size: 0 },
-  { name: 'images/', path: '/images/', isDirectory: true, size: 0 },
-  { name: 'report.pdf', path: '/report.pdf', isDirectory: false, size: 2450000 },
-  { name: 'notes.txt', path: '/notes.txt', isDirectory: false, size: 12500 },
-  { name: 'photo.jpg', path: '/photo.jpg', isDirectory: false, size: 3800000 },
-  { name: 'data.json', path: '/data.json', isDirectory: false, size: 56000 },
-  { name: 'script.js', path: '/script.js', isDirectory: false, size: 8200 },
-  { name: 'README.md', path: '/README.md', isDirectory: false, size: 3400 },
-];
+const PREVIEWABLE_EXTS = new Set(['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py', 'csv', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'pdf']);
 
 export default function ArchiveExplorerScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [docName, setDocName] = useState('Archive');
+  const [entries, setEntries] = useState<ArchiveEntry[]>([]);
+  const [currentPath, setCurrentPath] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      getDb().then(async (db) => {
-        const doc = await getDocumentById(db, id);
-        if (doc) setDocName(doc.name);
-      });
-    }
+    if (!id) return;
+    (async () => {
+      const db = await getDb();
+      const doc = await getDocumentById(db, id);
+      if (!doc) { setError('Document not found'); setLoading(false); return; }
+      setDocName(doc.name);
+      try {
+        const all = await listArchiveEntries(doc.path);
+        setEntries(all);
+      } catch (e: any) {
+        setError(e.message || 'Failed to read archive');
+      }
+      setLoading(false);
+    })();
   }, [id]);
+
+  const filteredEntries = currentPath
+    ? entries.filter((e) => {
+        if (!e.path.startsWith(currentPath)) return false;
+        const relative = e.path.slice(currentPath.length);
+        return relative && !relative.includes('/');
+      })
+    : entries.filter((e) => !e.path.includes('/'));
+
+  const handleNavigate = useCallback((entry: ArchiveEntry) => {
+    if (entry.isDirectory) {
+      setCurrentPath(entry.path + (entry.path.endsWith('/') ? '' : '/'));
+    } else {
+      const ext = entry.name.split('.').pop()?.toLowerCase() || '';
+      if (PREVIEWABLE_EXTS.has(ext)) {
+        setExtracting(true);
+        (async () => {
+          try {
+            const db = await getDb();
+            const doc = await getDocumentById(db, id!);
+            if (!doc) return;
+            const tempPath = await extractEntry(doc.path, entry.path);
+            if (ext === 'pdf') router.push(`/reader/pdf/${id}`);
+            else router.push(`/reader/text/${id}`);
+          } catch {}
+          setExtracting(false);
+        })();
+      }
+    }
+  }, [currentPath, id]);
+
+  const goUp = useCallback(() => {
+    const parts = currentPath.replace(/\/$/, '').split('/');
+    parts.pop();
+    setCurrentPath(parts.length > 0 ? parts.join('/') + '/' : '');
+  }, [currentPath]);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={c.primary} />
+        <Text style={{ color: c.textSecondary, marginTop: 12 }}>Reading archive...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border }}>
+          <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button"><ArrowLeft size={24} color={c.text} /></TouchableOpacity>
+          <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: c.text, textAlign: 'center' }} numberOfLines={1}>{docName}</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Text style={{ color: c.error, fontSize: 16 }}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
@@ -59,14 +116,32 @@ export default function ArchiveExplorerScreen() {
         </View>
       </View>
 
+      {currentPath !== '' && (
+        <TouchableOpacity
+          onPress={goUp}
+          style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border }}
+          accessibilityLabel={`Go up from ${currentPath}`} accessibilityRole="button"
+        >
+          <ChevronLeft size={18} color={c.primary} />
+          <Text style={{ color: c.primary, fontSize: 14, marginLeft: 4 }}>.. / {currentPath.replace(/\/$/, '')}</Text>
+        </TouchableOpacity>
+      )}
+
+      {extracting && (
+        <View style={{ padding: 12, backgroundColor: c.primaryContainer, alignItems: 'center' }}>
+          <ActivityIndicator size="small" color={c.primary} />
+          <Text style={{ color: c.primary, fontSize: 13, marginTop: 6 }}>Extracting file...</Text>
+        </View>
+      )}
+
       <FlatList
-        data={MOCK_ENTRIES}
+        data={filteredEntries}
         keyExtractor={(item) => item.path}
         contentContainerStyle={{ padding: 12 }}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: c.surface, borderRadius: 10, marginBottom: 6 }}
-            onPress={() => {}}
+            onPress={() => handleNavigate(item)}
             accessibilityLabel={`${item.name}${item.isDirectory ? ' folder' : `, ${formatSize(item.size)}`}`}
             accessibilityRole="button"
           >

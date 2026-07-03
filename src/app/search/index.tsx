@@ -2,11 +2,30 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Search as SearchIcon, X, FileText, Clock } from 'lucide-react-native';
+import { ArrowLeft, Search as SearchIcon, X, FileText, Clock, FileSearch } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useSearchStore } from '@/stores/search-store';
 import { EmptyState, LoadingState } from '@/components/empty-state';
+
+function HighlightedSnippet({ text }: { text: string }) {
+  if (!text.includes('<mark>')) {
+    return <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }} numberOfLines={2}>{text}</Text>;
+  }
+  const parts = text.split(/(<mark>|<\/mark>)/g);
+  const nodes: React.ReactNode[] = [];
+  let highlighting = false;
+  for (const part of parts) {
+    if (part === '<mark>') { highlighting = true; continue; }
+    if (part === '</mark>') { highlighting = false; continue; }
+    if (highlighting) {
+      nodes.push(<Text key={nodes.length} style={{ fontSize: 12, marginTop: 2, backgroundColor: '#fde047', color: '#1c1c1e', fontWeight: '600' }}>{part}</Text>);
+    } else {
+      nodes.push(<Text key={nodes.length} style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{part}</Text>);
+    }
+  }
+  return <Text numberOfLines={2}>{nodes}</Text>;
+}
 
 export default function SearchScreen() {
   const c = useTheme();
@@ -36,7 +55,7 @@ export default function SearchScreen() {
           <SearchIcon size={18} color={c.textSecondary} />
           <TextInput
             style={{ flex: 1, marginLeft: 10, fontSize: 16, color: c.text }}
-            placeholder="Search documents, notes, bookmarks..."
+            placeholder="Search documents, content, notes..."
             placeholderTextColor={c.textTertiary}
             value={query}
             onChangeText={setQuery}
@@ -83,17 +102,32 @@ export default function SearchScreen() {
           keyExtractor={(item) => item.documentId + item.snippet}
           contentContainerStyle={{ paddingHorizontal: 20, flexGrow: 1 }}
           renderItem={({ item }) => (
-            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8 }} accessibilityLabel={`${item.documentName}, ${item.snippet}`} accessibilityRole="button">
-              <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
-                <FileText size={18} color={c.primary} />
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8 }} accessibilityLabel={`${item.documentName}`} accessibilityRole="button">
+              <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                {item.matchType === 'content' ? (
+                  <FileSearch size={18} color={c.primary} />
+                ) : (
+                  <FileText size={18} color={c.primary} />
+                )}
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }} numberOfLines={1}>{item.documentName}</Text>
-                <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }} numberOfLines={1}>{item.snippet}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }} numberOfLines={1}>{item.documentName}</Text>
+                  {item.matchType === 'content' ? (
+                    <View style={{ backgroundColor: c.primaryContainer, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '600', color: c.primary }}>CONTENT</Text>
+                    </View>
+                  ) : (
+                    <View style={{ backgroundColor: c.surfaceVariant, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '600', color: c.textSecondary }}>NAME</Text>
+                    </View>
+                  )}
+                </View>
+                <HighlightedSnippet text={item.snippet} />
               </View>
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<EmptyState icon={SearchIcon} title="No results found" subtitle={`No matches for "${query}"`} />}
+          ListEmptyComponent={<EmptyState icon={SearchIcon} title="No results found" subtitle={`No matches for "${query}" in document names or content`} />}
         />
       )}
     </SafeAreaView>

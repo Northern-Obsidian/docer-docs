@@ -150,6 +150,36 @@ const MIGRATIONS = [
       );
     `);
   },
+
+  // v4: Document content full-text search
+  async (db: SQLiteDatabase) => {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS document_content (
+        document_id TEXT PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        indexed_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(
+        content, content='document_content', content_rowid='rowid'
+      );
+
+      CREATE TRIGGER IF NOT EXISTS content_ai AFTER INSERT ON document_content BEGIN
+        INSERT INTO content_fts(rowid, content) VALUES (new.rowid, new.content);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS content_ad AFTER DELETE ON document_content BEGIN
+        INSERT INTO content_fts(content_fts, rowid, content) VALUES('delete', old.rowid, old.content);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS content_au AFTER UPDATE ON document_content BEGIN
+        INSERT INTO content_fts(content_fts, rowid, content) VALUES('delete', old.rowid, old.content);
+        INSERT INTO content_fts(rowid, content) VALUES (new.rowid, new.content);
+      END;
+
+      CREATE INDEX IF NOT EXISTS idx_content_indexed_at ON document_content(indexed_at);
+    `);
+  },
 ];
 
 const MIGRATION_TABLE = `
