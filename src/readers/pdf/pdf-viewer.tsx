@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, FlatList, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import { Search, X, ChevronUp, ChevronDown, PanelRightClose } from 'lucide-react-native';
 
 import { getViewerHtml, getPdfSourceUri } from './pdf-engine';
 import { useTheme } from '@/hooks/use-theme';
@@ -9,6 +10,8 @@ export interface PdfViewerActions {
   goToPage: (page: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  toggleSearch: () => void;
+  toggleThumbnails: () => void;
 }
 
 interface PdfViewerProps {
@@ -17,6 +20,7 @@ interface PdfViewerProps {
   onError?: (error: string) => void;
   onTextSelection?: (text: string) => void;
   actionRef?: React.MutableRefObject<PdfViewerActions | null>;
+  showThumbnails?: boolean;
 }
 
 const TEXT_SELECTION_JS = `
@@ -35,11 +39,16 @@ const TEXT_SELECTION_JS = `
   })();
 `;
 
-export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef }: PdfViewerProps) {
+export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, showThumbnails }: PdfViewerProps) {
   const c = useTheme();
   const ref = useRef<WebView>(null);
   const uri = getPdfSourceUri(path);
   const html = getViewerHtml();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ page: number; snippet: string }[]>([]);
+  const [searchResultCount, setSearchResultCount] = useState(0);
+  const [pageCount, setPageCount] = useState(0);
 
   useEffect(() => {
     if (actionRef) {
@@ -47,6 +56,8 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef }:
         goToPage: (page: number) => ref.current?.postMessage(JSON.stringify({ type: 'go', page })),
         zoomIn: () => ref.current?.postMessage(JSON.stringify({ type: 'zi' })),
         zoomOut: () => ref.current?.postMessage(JSON.stringify({ type: 'zo' })),
+        toggleSearch: () => ref.current?.postMessage(JSON.stringify({ type: 'search' })),
+        toggleThumbnails: () => ref.current?.postMessage(JSON.stringify({ type: 'thumbnails' })),
       };
     }
   }, [actionRef]);
@@ -54,14 +65,66 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef }:
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === 'loaded') onLoad?.(msg.pages);
+      if (msg.type === 'loaded') { onLoad?.(msg.pages); setPageCount(msg.pages); }
       if (msg.type === 'error') onError?.(msg.message);
       if (msg.type === 'selection') onTextSelection?.(msg.text);
+      if (msg.type === 'searchToggled') setSearchOpen(msg.open);
     } catch {}
   }, [onLoad, onError, onTextSelection]);
 
+  const handleSearchQuery = useCallback((text: string) => {
+    setSearchQuery(text);
+    ref.current?.postMessage(JSON.stringify({ type: 'searchQuery', query: text }));
+  }, []);
+
+  const goToSearchResult = useCallback((page: number) => {
+    ref.current?.postMessage(JSON.stringify({ type: 'go', page }));
+  }, []);
+
   return (
     <View style={{ flex: 1, backgroundColor: c.readerBackground }}>
+      {searchOpen && (
+        <View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
+          backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
+          paddingHorizontal: 12, paddingVertical: 8,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Search size={18} color={c.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={handleSearchQuery}
+              placeholder="Search in document..."
+              placeholderTextColor={c.textTertiary}
+              style={{ flex: 1, fontSize: 15, color: c.text, paddingVertical: 6 }}
+              autoFocus
+            />
+            <TouchableOpacity onPress={() => ref.current?.postMessage(JSON.stringify({ type: 'search' }))}>
+              <X size={20} color={c.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          {searchResultCount > 0 && (
+            <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
+              {searchResultCount} result{searchResultCount !== 1 ? 's' : ''} found
+            </Text>
+          )}
+          {searchResults.length > 0 && (
+            <ScrollView style={{ maxHeight: 160 }} showsVerticalScrollIndicator>
+              {searchResults.map((r, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => goToSearchResult(r.page)}
+                  style={{ paddingVertical: 4 }}
+                >
+                  <Text style={{ fontSize: 12, color: c.primary }}>Page {r.page}</Text>
+                  <Text style={{ fontSize: 12, color: c.textSecondary }} numberOfLines={1}>{r.snippet}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
       <WebView
         ref={ref}
         source={{ html }}

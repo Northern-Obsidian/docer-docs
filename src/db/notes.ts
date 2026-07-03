@@ -23,3 +23,5 @@ export async function updateNote(db: SQLiteDatabase, id: string, content: string
 export async function deleteNote(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('DELETE FROM notes WHERE id = ?', id);
 }
+
+export const getAllNotesByDocument = getNotesByDocument;

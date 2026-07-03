@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -32,6 +32,7 @@ export default function EpubReaderScreen() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showHighlightToolbar, setShowHighlightToolbar] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const fontSize = useThemeStore((s) => s.fontSize);
   const lineSpacing = useThemeStore((s) => s.lineSpacing);
   const openDocument = useDocumentStore((s) => s.openDocument);
@@ -141,7 +142,7 @@ export default function EpubReaderScreen() {
         onNextChapter={() => setCurrentChapter(Math.min(epubData.chapters.length - 1, currentChapter + 1))}
         onChapterSelect={setCurrentChapter}
         onToggleBookmark={handleToggleBookmark}
-        onToggleSearch={() => {}}
+        onToggleSearch={() => setShowSearch(!showSearch)}
         onToggleSettings={() => setShowSettings(!showSettings)}
         onHighlight={() => setShowHighlightToolbar(true)}
         onNote={() => setShowNoteModal(true)}

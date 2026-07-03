@@ -153,9 +153,9 @@ export default function PDFReaderScreen() {
       <PdfToolbar
         title={docName}
         isBookmarked={isBookmarked}
-        onToggleThumbnails={toggleThumbnails}
+        onToggleThumbnails={() => actionsRef.current?.toggleThumbnails()}
         onToggleBookmark={handleToggleBookmark}
-        onToggleSearch={() => {}}
+        onToggleSearch={() => actionsRef.current?.toggleSearch()}
         onHighlight={() => setShowHighlightToolbar(true)}
         onNote={() => setShowNoteModal(true)}
         onShare={() => {}}
@@ -163,9 +163,11 @@ export default function PDFReaderScreen() {
 
       <View style={{ flex: 1, flexDirection: 'row' }}>
         {showThumbnails && (
-          <View style={{ width: 80, backgroundColor: c.surface, borderRightWidth: 1, borderRightColor: c.border }}>
-            <Text style={{ color: c.textSecondary, fontSize: 11, textAlign: 'center', padding: 8 }}>Pages</Text>
-          </View>
+          <PdfThumbnailSidebar
+            pageCount={currentDocument?.pageCount ?? 0}
+            currentPage={currentPage}
+            onPageSelect={(page) => actionsRef.current?.goToPage(page)}
+          />
         )}
         <PdfViewer
           path={docPath}
@@ -173,6 +175,7 @@ export default function PDFReaderScreen() {
           onLoad={handleLoad}
           onError={(e) => setError(e)}
           onTextSelection={handleTextSelection}
+          showThumbnails={showThumbnails}
         />
       </View>
 
@@ -214,5 +217,31 @@ export default function PDFReaderScreen() {
         </>
       )}
     </SafeAreaView>
+  );
+}
+
+function PdfThumbnailSidebar({ pageCount, currentPage, onPageSelect }: { pageCount: number; currentPage: number; onPageSelect: (page: number) => void }) {
+  const c = useTheme();
+  return (
+    <View style={{ width: 80, backgroundColor: c.surface, borderRightWidth: 1, borderRightColor: c.border }}>
+      <Text style={{ color: c.textSecondary, fontSize: 11, textAlign: 'center', padding: 8 }}>Pages</Text>
+      <View style={{ padding: 4 }}>
+        {Array.from({ length: Math.min(pageCount, 100) }, (_, i) => i + 1).map((page) => (
+          <View
+            key={page}
+            onTouchEnd={() => onPageSelect(page)}
+            style={{
+              height: 60, marginBottom: 6, borderRadius: 4,
+              backgroundColor: page === currentPage ? c.primaryContainer : c.surfaceVariant,
+              borderWidth: page === currentPage ? 2 : 1,
+              borderColor: page === currentPage ? c.primary : c.border,
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 10, color: page === currentPage ? c.primary : c.textSecondary }}>{page}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }

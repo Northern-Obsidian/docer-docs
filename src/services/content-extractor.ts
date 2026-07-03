@@ -45,6 +45,7 @@ async function extractFromEpub(path: string): Promise<string> {
     if (!containerXml) return '';
 
     const container = new DOMParser().parseFromString(containerXml, 'text/xml');
+    if (!container.documentElement) return '';
     const rootfile = container.documentElement.getElementsByTagName('rootfile')[0];
     const opfPath = rootfile?.getAttribute('full-path');
     if (!opfPath) return '';
@@ -55,6 +56,7 @@ async function extractFromEpub(path: string): Promise<string> {
 
     const opf = new DOMParser().parseFromString(opfContent, 'text/xml');
 
+    if (!opf.documentElement) return '';
     const manifestEl = opf.documentElement.getElementsByTagName('manifest')[0];
     const items = manifestEl ? Array.from(manifestEl.getElementsByTagName('item')) : [];
     const manifest: Record<string, { href: string; mediaType: string }> = {};
@@ -65,6 +67,7 @@ async function extractFromEpub(path: string): Promise<string> {
       };
     }
 
+    if (!opf.documentElement) return '';
     const spineEl = opf.documentElement.getElementsByTagName('spine')[0];
     const spineItems = spineEl ? Array.from(spineEl.getElementsByTagName('itemref')) : [];
 

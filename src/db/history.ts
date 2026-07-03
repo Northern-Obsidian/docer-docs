@@ -33,3 +33,5 @@ export async function deleteHistory(db: SQLiteDatabase, id: string) {
 export async function clearAllHistory(db: SQLiteDatabase) {
   await db.runAsync('DELETE FROM reading_history');
 }
+
+export const clearHistory = clearAllHistory;

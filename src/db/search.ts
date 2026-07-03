@@ -7,6 +7,7 @@ export interface SearchResult {
   documentType: string;
   snippet: string;
   rank: number;
+  matchType?: 'name' | 'content';
 }
 
 export async function searchAll(db: SQLiteDatabase, query: string): Promise<SearchResult[]> {

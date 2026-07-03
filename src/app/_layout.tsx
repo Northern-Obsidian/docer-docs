@@ -14,6 +14,7 @@ import { THEME_COLORS } from '@/constants/theme-config';
 import { setupNotifications } from '@/services/notification-service';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/offline-banner';
+import { AppLockGate } from '@/features/security/app-lock-screen';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -44,6 +45,7 @@ export default function RootLayout() {
         <ErrorBoundary>
           <StatusBar style={theme === 'light' ? 'dark' : 'light'} />
           <OfflineBanner />
+          <AppLockGate>
           <Tabs
           screenOptions={{
             headerShown: false,
@@ -70,6 +72,7 @@ export default function RootLayout() {
           <Tabs.Screen name="settings/storage" options={{ href: null }} />
           <Tabs.Screen name="settings/about" options={{ href: null }} />
         </Tabs>
+        </AppLockGate>
         </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>

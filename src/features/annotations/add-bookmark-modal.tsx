@@ -40,7 +40,7 @@ export function AddBookmarkModal({ visible, documentId, page, onClose, onSaved }
       chapter: null,
       position: null,
       label: label || `Page ${page}`,
-      folderId: selectedFolderId,
+      folderId: selectedFolderId ?? undefined,
       createdAt: new Date().toISOString(),
     });
     setLabel('');

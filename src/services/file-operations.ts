@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { getDb } from '@/db/connection';
 import { getDocumentById, updateDocument, deleteDocument as deleteDocFromDb } from '@/db/documents';
 
@@ -26,6 +26,10 @@ export async function deleteDocument(id: string): Promise<boolean> {
           onPress: async () => {
             try {
               const db = await getDb();
+              const doc = await getDocumentById(db, id);
+              if (doc) {
+                await FileSystem.deleteAsync(doc.path, { idempotent: true });
+              }
               await deleteDocFromDb(db, id);
               resolve(true);
             } catch { resolve(false); }
@@ -61,10 +65,55 @@ export async function duplicateDocument(id: string): Promise<boolean> {
     const baseName = doc.name.replace(/\.[^.]+$/, '');
     const ext = doc.name.includes('.') ? doc.name.substring(doc.name.lastIndexOf('.')) : '';
     const newName = `${baseName} (Copy)${ext}`;
+    const dir = doc.path.substring(0, doc.path.lastIndexOf('/'));
+    const newPath = `${dir}/${newName}`;
 
-    await updateDocument(db, id, { name: newName });
+    await FileSystem.copyAsync({ from: doc.path, to: newPath });
+    await updateDocument(db, id, { name: newName, path: newPath });
     return true;
   } catch {
     return false;
   }
 }
+
+export async function copyDocument(id: string, destinationDir: string): Promise<boolean> {
+  try {
+    const db = await getDb();
+    const doc = await getDocumentById(db, id);
+    if (!doc) return false;
+
+    const destPath = `${destinationDir}/${doc.name}`;
+    await FileSystem.copyAsync({ from: doc.path, to: destPath });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function moveDocument(id: string, destinationDir: string): Promise<boolean> {
+  try {
+    const db = await getDb();
+    const doc = await getDocumentById(db, id);
+    if (!doc) return false;
+
+    const destPath = `${destinationDir}/${doc.name}`;
+    await FileSystem.moveAsync({ from: doc.path, to: destPath });
+    await updateDocument(db, id, { path: destPath });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function pickDestinationFolder(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+  const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+  return null; // Simplified - in production use DirectoryPicker
+}
+
+let DocumentPicker: any;
+try {
+  DocumentPicker = require('expo-document-picker');
+} catch {}

@@ -27,3 +27,5 @@ export async function insertBookmark(db: SQLiteDatabase, bm: Bookmark): Promise<
 export async function deleteBookmark(db: SQLiteDatabase, id: string): Promise<void> {
   await db.runAsync('DELETE FROM bookmarks WHERE id = ?', id);
 }
+
+export const getAllBookmarksByDocument = getBookmarksByDocument;

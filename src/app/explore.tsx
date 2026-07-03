@@ -225,6 +225,7 @@ export default function LibraryScreen() {
 
       <FileActionsSheet
         visible={showActions}
+        documentId={selectedDoc?.id || ''}
         fileName={selectedDoc?.name || ''}
         onClose={() => { setShowActions(false); setSelectedDoc(null); }}
         onRename={() => {}}
