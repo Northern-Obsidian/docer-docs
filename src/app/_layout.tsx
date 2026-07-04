@@ -37,7 +37,7 @@ export default function RootLayout() {
     loadSettings();
     getDb().then(runMigrations);
     setupNotifications();
-  }, []);
+  }, [loadFromStorage, loadSettings]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

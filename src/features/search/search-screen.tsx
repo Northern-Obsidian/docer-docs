@@ -9,7 +9,7 @@ export function SearchScreen() {
       <Search size={48} color={c.textTertiary} />
       <Text style={{ fontSize: 17, fontWeight: '600', color: c.text, marginTop: 16 }}>Full-Text Search</Text>
       <Text style={{ fontSize: 14, color: c.textSecondary, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
-        Search across all your documents' content, bookmarks, and notes.
+        Search across all your documents, bookmarks, and notes.
       </Text>
     </View>
   );

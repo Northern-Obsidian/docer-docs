@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -54,7 +54,7 @@ export default function EpubReaderScreen() {
       setLoading(false);
     };
     load();
-  }, [id]);
+  }, [id, openDocument]);
 
   useEffect(() => {
     if (!id || !epubData) return;

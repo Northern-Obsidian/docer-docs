@@ -33,11 +33,9 @@ export default function PDFReaderScreen() {
 
   const currentPage = useReaderStore((s) => s.currentPage);
   const zoom = useReaderStore((s) => s.zoom);
-  const setCurrentPage = useReaderStore((s) => s.setCurrentPage);
   const setTotalPages = useReaderStore((s) => s.setTotalPages);
   const setZoom = useReaderStore((s) => s.setZoom);
   const showThumbnails = useReaderStore((s) => s.showThumbnails);
-  const toggleThumbnails = useReaderStore((s) => s.toggleThumbnails);
   const resetReader = useReaderStore((s) => s.reset);
   const openDocument = useDocumentStore((s) => s.openDocument);
   const currentDocument = useDocumentStore((s) => s.currentDocument);
@@ -62,7 +60,7 @@ export default function PDFReaderScreen() {
     };
     load();
     return () => resetReader();
-  }, [id]);
+  }, [id, openDocument, resetReader]);
 
   useEffect(() => {
     if (!id) return;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
-import { X, FolderOpen, Check, Plus } from 'lucide-react-native';
+import { X, FolderOpen, Check } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
@@ -30,7 +30,7 @@ export function CollectionPicker({ visible, documentId, onClose }: CollectionPic
     setMemberIds(memberShips);
   };
 
-  useEffect(() => { if (visible) load(); }, [visible, documentId]);
+  useEffect(() => { if (visible) startTransition(() => { load(); }); }, [visible, documentId]);
 
   const toggle = async (collectionId: string) => {
     const db = await getDb();

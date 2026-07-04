@@ -15,7 +15,6 @@ export default function HomeScreen() {
   const recentDocuments = useDocumentStore((s) => s.recentDocuments);
   const fetchRecent = useDocumentStore((s) => s.fetchRecentDocuments);
   const fetchFavorites = useDocumentStore((s) => s.fetchFavorites);
-  const favoriteIds = useDocumentStore((s) => s.favoriteIds);
   const todayStats = useStatsStore((s) => s.todayStats);
   const fetchTodayStats = useStatsStore((s) => s.fetchTodayStats);
   const fetchReadingStreak = useStatsStore((s) => s.fetchReadingStreak);
@@ -31,13 +30,13 @@ export default function HomeScreen() {
     fetchTodayStats();
     fetchReadingStreak();
     fetchCategories();
-  }, []);
+  }, [fetchRecent, fetchFavorites, fetchTodayStats, fetchReadingStreak, fetchCategories]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([fetchRecent(), fetchFavorites(), fetchTodayStats(), fetchReadingStreak(), fetchCategories()]);
     setRefreshing(false);
-  }, []);
+  }, [fetchRecent, fetchFavorites, fetchTodayStats, fetchReadingStreak, fetchCategories]);
 
   const handleImport = async () => {
     setImporting(true);

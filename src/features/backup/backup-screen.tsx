@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Download, Upload, Database, HardDrive, Clock, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Upload, Database, HardDrive } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { createBackup, shareBackup, getBackupList } from '@/services/backup-service';
@@ -13,7 +13,7 @@ export function BackupScreen() {
   const [creating, setCreating] = useState(false);
 
   const load = async () => setBackups(await getBackupList());
-  useEffect(() => { load(); }, []);
+  useEffect(() => { startTransition(() => { load(); }); }, []);
 
   const handleBackup = async () => {
     setCreating(true);
@@ -28,8 +28,7 @@ export function BackupScreen() {
   };
 
   const handleShare = async (name: string) => {
-    const backupDir = `${require('expo-file-system').documentDirectory}backups/`;
-    await shareBackup(backupDir + name);
+    await shareBackup(name);
   };
 
   const formatSize = (bytes: number) => {

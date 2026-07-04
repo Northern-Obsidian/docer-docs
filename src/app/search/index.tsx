@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -40,7 +40,7 @@ export default function SearchScreen() {
 
   useEffect(() => {
     loadRecentSearches();
-  }, []);
+  }, [loadRecentSearches]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>

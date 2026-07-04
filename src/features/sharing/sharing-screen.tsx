@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
-import { Share2, Wifi } from 'lucide-react-native';
+import { Share2 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import * as Sharing from 'expo-sharing';
 

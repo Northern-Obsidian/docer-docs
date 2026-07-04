@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
-import { X, Tag as TagIcon, Plus } from 'lucide-react-native';
+import { X, Tag as TagIcon } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
@@ -25,7 +25,7 @@ export function TagPicker({ visible, documentId, onClose }: TagPickerProps) {
     setAssignedIds(new Set(assigned.map((t: Tag) => t.id)));
   };
 
-  useEffect(() => { if (visible) load(); }, [visible, documentId]);
+  useEffect(() => { if (visible) startTransition(() => { load(); }); }, [visible, documentId]);
 
   const toggle = async (tagId: string) => {
     const db = await getDb();

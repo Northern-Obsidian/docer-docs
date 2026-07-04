@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { X, Minus, Plus } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { useThemeStore } from '@/stores/theme-store';

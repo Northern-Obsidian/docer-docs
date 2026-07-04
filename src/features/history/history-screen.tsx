@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { Clock, Trash2 } from 'lucide-react-native';
+import { Clock } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
 import { getRecentDocuments } from '@/db/documents';

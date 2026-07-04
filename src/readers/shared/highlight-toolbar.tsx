@@ -31,7 +31,7 @@ export function HighlightToolbar({ visible, selectedText, onHighlight, onDismiss
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
         <Highlighter size={16} color={c.primary} />
         <Text style={{ fontSize: 13, fontWeight: '600', color: c.text, marginLeft: 6, flex: 1 }} numberOfLines={1}>
-          "{selectedText.length > 50 ? selectedText.slice(0, 50) + '...' : selectedText}"
+          {'"'}{selectedText.length > 50 ? selectedText.slice(0, 50) + '...' : selectedText}{'"'}
         </Text>
         <TouchableOpacity onPress={onDismiss}>
           <Text style={{ fontSize: 13, color: c.textSecondary }}>Cancel</Text>

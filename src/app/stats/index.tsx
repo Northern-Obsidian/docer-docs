@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, TrendingUp, Clock, BookOpen, Flame } from 'lucide-react-native';
+import { ArrowLeft, Clock, BookOpen, Flame } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useStatsStore } from '@/stores/stats-store';

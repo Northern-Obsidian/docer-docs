@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Target, Clock, BookOpen, Plus, X, Flame, Play, Pause } from 'lucide-react-native';
+import { ArrowLeft, Clock, Plus, X, Flame, Play, Pause } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -39,7 +39,7 @@ export function GoalsScreen() {
       if (state === 'active') fetchTodayStats();
     });
     return () => sub.remove();
-  }, []);
+  }, [fetchTodayStats]);
 
   const startTimer = () => {
     setIsRunning(true);

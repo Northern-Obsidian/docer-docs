@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { Target, Clock, BookOpen } from 'lucide-react-native';
+import { Target, Clock } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { useSettingsStore } from '@/stores/settings-store';
 import { getDb } from '@/db/connection';

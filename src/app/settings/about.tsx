@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, Heart, Code, ExternalLink } from 'lucide-react-native';
+import { ArrowLeft, Heart, Code } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 

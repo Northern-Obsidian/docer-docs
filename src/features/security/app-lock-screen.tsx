@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
+import { useState, useCallback, useEffect, startTransition } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Lock, Fingerprint, Shield, KeyRound } from 'lucide-react-native';
+import { Lock, Fingerprint, Shield } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -173,13 +173,9 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   const c = useTheme();
   const appLockEnabled = useSettingsStore((s) => s.appLockEnabled);
   const appLockType = useSettingsStore((s) => s.appLockType);
-  const [locked, setLocked] = useState(true);
+  const [locked, setLocked] = useState(appLockEnabled);
   const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    setLocked(appLockEnabled);
-  }, [appLockEnabled]);
 
   const handleBiometric = useCallback(async () => {
     if (appLockType !== 'biometric') return;
@@ -188,7 +184,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
       fallbackLabel: 'Use PIN',
     });
     if (result.success) {
-      setLocked(false);
+      startTransition(() => setLocked(false));
     } else if (result.error === 'user_fallback') {
       // fall through to PIN
     }

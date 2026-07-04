@@ -8,22 +8,8 @@ import { useThemeStore } from '@/stores/theme-store';
 
 const FONTS = ['system', 'serif', 'monospace', 'Georgia', 'Palatino', 'Merriweather'];
 
-export default function AppearanceScreen() {
-  const c = useTheme();
-  const fontSize = useThemeStore((s) => s.fontSize);
-  const lineSpacing = useThemeStore((s) => s.lineSpacing);
-  const margins = useThemeStore((s) => s.margins);
-  const font = useThemeStore((s) => s.font);
-  const orientation = useThemeStore((s) => s.orientation);
-  const animationEnabled = useThemeStore((s) => s.animationEnabled);
-  const setFontSize = useThemeStore((s) => s.setFontSize);
-  const setLineSpacing = useThemeStore((s) => s.setLineSpacing);
-  const setMargins = useThemeStore((s) => s.setMargins);
-  const setFont = useThemeStore((s) => s.setFont);
-  const setOrientation = useThemeStore((s) => s.setOrientation);
-  const toggleAnimation = useThemeStore((s) => s.toggleAnimation);
-
-  const Slider = ({ label, value, min, max, step, onChange, format }: any) => (
+function Slider({ label, value, min, max, step, onChange, format, c }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; format?: (v: number) => string; c: any }) {
+  return (
     <View style={{ marginBottom: 20 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
         <Text style={{ color: c.text, fontSize: 15 }}>{label}</Text>
@@ -42,6 +28,22 @@ export default function AppearanceScreen() {
       </View>
     </View>
   );
+}
+
+export default function AppearanceScreen() {
+  const c = useTheme();
+  const fontSize = useThemeStore((s) => s.fontSize);
+  const lineSpacing = useThemeStore((s) => s.lineSpacing);
+  const margins = useThemeStore((s) => s.margins);
+  const font = useThemeStore((s) => s.font);
+  const orientation = useThemeStore((s) => s.orientation);
+  const animationEnabled = useThemeStore((s) => s.animationEnabled);
+  const setFontSize = useThemeStore((s) => s.setFontSize);
+  const setLineSpacing = useThemeStore((s) => s.setLineSpacing);
+  const setMargins = useThemeStore((s) => s.setMargins);
+  const setFont = useThemeStore((s) => s.setFont);
+  const setOrientation = useThemeStore((s) => s.setOrientation);
+  const toggleAnimation = useThemeStore((s) => s.toggleAnimation);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
@@ -63,9 +65,9 @@ export default function AppearanceScreen() {
         </View>
 
         <View style={{ backgroundColor: c.surface, borderRadius: 16, padding: 20, marginBottom: 16 }}>
-          <Slider label="Font Size" value={fontSize} min={12} max={48} step={2} onChange={setFontSize} format={(v: number) => `${v}px`} />
-          <Slider label="Line Spacing" value={lineSpacing} min={1} max={2.5} step={0.1} onChange={setLineSpacing} format={(v: number) => `${v.toFixed(1)}x`} />
-          <Slider label="Margins" value={margins} min={8} max={40} step={4} onChange={setMargins} format={(v: number) => `${v}px`} />
+          <Slider c={c} label="Font Size" value={fontSize} min={12} max={48} step={2} onChange={setFontSize} format={(v: number) => `${v}px`} />
+          <Slider c={c} label="Line Spacing" value={lineSpacing} min={1} max={2.5} step={0.1} onChange={setLineSpacing} format={(v: number) => `${v.toFixed(1)}x`} />
+          <Slider c={c} label="Margins" value={margins} min={8} max={40} step={4} onChange={setMargins} format={(v: number) => `${v}px`} />
         </View>
 
         <View style={{ backgroundColor: c.surface, borderRadius: 16, padding: 20, marginBottom: 16 }}>

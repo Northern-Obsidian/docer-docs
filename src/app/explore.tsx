@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -54,14 +54,12 @@ export default function LibraryScreen() {
   const setSortOrder = useLibraryStore((s) => s.setSortOrder);
   const fetchDocuments = useLibraryStore((s) => s.fetchDocuments);
   const fetchCategories = useLibraryStore((s) => s.fetchCategories);
-  const toggleFavorite = useDocumentStore((s) => s.toggleFavorite);
   const favoriteIds = useDocumentStore((s) => s.favoriteIds);
 
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [showActions, setShowActions] = useState(false);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,10 +80,8 @@ export default function LibraryScreen() {
   ];
 
   const handleImport = async () => {
-    setImporting(true);
     const doc = await pickAndImportDocument();
     if (doc) { fetchDocuments(); fetchCategories(); }
-    setImporting(false);
   };
 
   const gridColumnCount = width > 600 ? 3 : 2;

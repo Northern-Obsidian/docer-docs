@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, startTransition } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -31,7 +31,7 @@ export function NotesListScreen() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { startTransition(() => { load(); }); }, [load]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -78,7 +78,8 @@ export function FileActionsSheet({ visible, fileName, documentId, onClose, onRen
       Alert.alert('Success', `Document ${showMoveCopy === 'move' ? 'moved' : 'copied'} successfully.`);
       setShowMoveCopy(null);
       setFolderPath('');
-      showMoveCopy === 'move' ? onMove?.() : onCopy?.();
+      if (showMoveCopy === 'move') onMove?.();
+      else onCopy?.();
       onClose();
     } else {
       Alert.alert('Error', `Failed to ${showMoveCopy} document. Check the destination path.`);

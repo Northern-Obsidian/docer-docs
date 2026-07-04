@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
-import { router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Search, ZoomIn, ZoomOut, FileSpreadsheet, FileText, Presentation } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 
 import { useTheme } from '@/hooks/use-theme';
-import { useDocumentStore } from '@/stores/document-store';
 import { getDb } from '@/db/connection';
 import { getDocumentById } from '@/db/documents';
 import { renderDocx, renderXlsx, renderPptx } from '@/readers/office/office-engine';

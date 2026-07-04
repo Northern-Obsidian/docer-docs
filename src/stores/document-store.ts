@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Document } from '@/types';
 import { getDb } from '@/db/connection';
 import { getRecentDocuments, getDocumentById } from '@/db/documents';
-import { getFavorites, toggleFavorite as dbToggleFavorite, isFavorite } from '@/db/favorites';
+import { getFavorites, toggleFavorite as dbToggleFavorite } from '@/db/favorites';
 
 interface DocumentState {
   currentDocument: Document | null;

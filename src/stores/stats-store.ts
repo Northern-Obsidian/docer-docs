@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getDb } from '@/db/connection';
-import { getTodayStats, getReadingStreak, getDateRangeStats } from '@/db/stats';
+import { getTodayStats, getReadingStreak } from '@/db/stats';
 
 interface DailyStats {
   pagesRead: number;

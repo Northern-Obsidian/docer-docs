@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import { getDb } from '@/db/connection';
 import { getDocumentById, updateDocument, deleteDocument as deleteDocFromDb } from '@/db/documents';
 
@@ -106,14 +106,5 @@ export async function moveDocument(id: string, destinationDir: string): Promise<
 }
 
 export async function pickDestinationFolder(): Promise<string | null> {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-  const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-  return null; // Simplified - in production use DirectoryPicker
+  return null;
 }
-
-let DocumentPicker: any;
-try {
-  DocumentPicker = require('expo-document-picker');
-} catch {}

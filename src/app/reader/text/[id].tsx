@@ -1,9 +1,8 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, startTransition } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Bookmark, Highlighter, StickyNote, WrapText, ListOrdered } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
+import { ArrowLeft, Bookmark, WrapText, ListOrdered } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -42,7 +41,7 @@ export default function TextReaderScreen() {
     else setContent(getPlainTextHtml(rawText, isDark, opts));
   }, [rawText, renderMode, isDark, wordWrap, showLineNumbers]);
 
-  useEffect(() => { regenContent(); }, [regenContent]);
+  useEffect(() => { startTransition(() => regenContent()); }, [regenContent]);
 
   useEffect(() => {
     if (!id) return;

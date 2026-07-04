@@ -1,5 +1,5 @@
 import { View, Text, Animated } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { WifiOff } from 'lucide-react-native';
 import { useNetInfo } from '@/hooks/use-net-info';
 import { useTheme } from '@/hooks/use-theme';
@@ -7,7 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 export function OfflineBanner() {
   const c = useTheme();
   const { isOffline } = useNetInfo();
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(opacity, {
@@ -36,7 +36,7 @@ export function OfflineBanner() {
       accessibilityLabel="You are offline"
     >
       <WifiOff size={16} color="#FFF" />
-      <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>You're offline</Text>
+      <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{'You\'re offline'}</Text>
     </Animated.View>
   );
 }

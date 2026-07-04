@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
-import { router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Folder, FileArchive, Search, Download, ChevronLeft } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { useDocumentStore } from '@/stores/document-store';
 import { getDb } from '@/db/connection';
 import { getDocumentById } from '@/db/documents';
 import { listArchiveEntries, extractEntry, type ArchiveEntry } from '@/readers/archive/archive-engine';
@@ -60,7 +58,7 @@ export default function ArchiveExplorerScreen() {
             const db = await getDb();
             const doc = await getDocumentById(db, id!);
             if (!doc) return;
-            const tempPath = await extractEntry(doc.path, entry.path);
+            await extractEntry(doc.path, entry.path);
             if (ext === 'pdf') router.push(`/reader/pdf/${id}`);
             else router.push(`/reader/text/${id}`);
           } catch {}
@@ -68,7 +66,7 @@ export default function ArchiveExplorerScreen() {
         })();
       }
     }
-  }, [currentPath, id]);
+  }, [id]);
 
   const goUp = useCallback(() => {
     const parts = currentPath.replace(/\/$/, '').split('/');

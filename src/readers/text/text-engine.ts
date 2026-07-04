@@ -87,7 +87,6 @@ export function getPlainTextHtml(text: string, isDark: boolean, options?: { word
 
 export function getMarkdownHtml(md: string, isDark: boolean, options?: { wordWrap?: boolean; showLineNumbers?: boolean }): string {
   const wordWrap = options?.wordWrap ?? true;
-  const showLineNumbers = options?.showLineNumbers ?? false;
   const bg = isDark ? '#1c1c1e' : '#ffffff';
   const text = isDark ? '#f5f5f7' : '#1c1c1e';
 

@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, FlatList, ActivityIndicator, ScrollView, Image } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
-import { Search, X, ChevronUp, ChevronDown, PanelRightClose } from 'lucide-react-native';
+import { Search, X } from 'lucide-react-native';
 
 import { getViewerHtml, getPdfSourceUri } from './pdf-engine';
 import { useTheme } from '@/hooks/use-theme';
@@ -46,9 +46,8 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, s
   const html = getViewerHtml();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<{ page: number; snippet: string }[]>([]);
-  const [searchResultCount, setSearchResultCount] = useState(0);
-  const [pageCount, setPageCount] = useState(0);
+  const [searchResults] = useState<{ page: number; snippet: string }[]>([]);
+  const [searchResultCount] = useState(0);
 
   useEffect(() => {
     if (actionRef) {
@@ -65,7 +64,7 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, s
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === 'loaded') { onLoad?.(msg.pages); setPageCount(msg.pages); }
+      if (msg.type === 'loaded') { onLoad?.(msg.pages); }
       if (msg.type === 'error') onError?.(msg.message);
       if (msg.type === 'selection') onTextSelection?.(msg.text);
       if (msg.type === 'searchToggled') setSearchOpen(msg.open);
