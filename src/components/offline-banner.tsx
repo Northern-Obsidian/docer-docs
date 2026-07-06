@@ -1,11 +1,9 @@
-import { View, Text, Animated } from 'react-native';
+import { Text, Animated } from 'react-native';
 import { useEffect, useState } from 'react';
 import { WifiOff } from 'lucide-react-native';
 import { useNetInfo } from '@/hooks/use-net-info';
-import { useTheme } from '@/hooks/use-theme';
 
 export function OfflineBanner() {
-  const c = useTheme();
   const { isOffline } = useNetInfo();
   const [opacity] = useState(() => new Animated.Value(0));
 
@@ -15,7 +13,7 @@ export function OfflineBanner() {
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [isOffline]);
+  }, [isOffline, opacity]);
 
   if (!isOffline) return null;
 

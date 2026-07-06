@@ -72,7 +72,7 @@ export default function LibraryScreen() {
       }
     };
     load();
-  }, []);
+  }, [fetchDocuments, fetchCategories]);
 
   const sortOptions: { key: SortBy; label: string }[] = [
     { key: 'date', label: 'Date' }, { key: 'name', label: 'Name' },

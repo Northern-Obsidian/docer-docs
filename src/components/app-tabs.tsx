@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Compass, Search, Bookmark, Settings } from 'lucide-react-native';
+import { Home, Compass } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 

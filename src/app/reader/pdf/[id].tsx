@@ -60,7 +60,7 @@ export default function PDFReaderScreen() {
     };
     load();
     return () => resetReader();
-  }, [id, openDocument, resetReader]);
+  }, [id, openDocument, resetReader, setTotalPages]);
 
   useEffect(() => {
     if (!id) return;

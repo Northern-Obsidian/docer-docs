@@ -4,7 +4,7 @@ import { X, FolderOpen, Check } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
-import { getAllCollections, addDocumentToCollection, removeDocumentFromCollection, getDocumentsByCollection } from '@/db/collections';
+import { getAllCollections, getDocumentsByCollection, addDocumentToCollection, removeDocumentFromCollection } from '@/db/collections';
 import type { Collection } from '@/types';
 
 interface CollectionPickerProps {
@@ -18,19 +18,21 @@ export function CollectionPicker({ visible, documentId, onClose }: CollectionPic
   const [collections, setCollections] = useState<Collection[]>([]);
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
 
-  const load = async () => {
-    const db = await getDb();
-    const all = await getAllCollections(db);
-    setCollections(all);
-    const memberShips: Set<string> = new Set();
-    for (const col of all) {
-      const docs = await getDocumentsByCollection(db, col.id) as any[];
-      if (docs.some((d: any) => d.id === documentId)) memberShips.add(col.id);
-    }
-    setMemberIds(memberShips);
-  };
-
-  useEffect(() => { if (visible) startTransition(() => { load(); }); }, [visible, documentId]);
+  useEffect(() => {
+    if (!visible) return;
+    const load = async () => {
+      const db = await getDb();
+      const allCollections = await getAllCollections(db);
+      setCollections(allCollections);
+      const memberShips = new Set<string>();
+      for (const col of allCollections) {
+        const docs = await getDocumentsByCollection(db, col.id);
+        if (docs.some((d: any) => d.id === documentId)) memberShips.add(col.id);
+      }
+      setMemberIds(memberShips);
+    };
+    startTransition(() => { load(); });
+  }, [visible, documentId]);
 
   const toggle = async (collectionId: string) => {
     const db = await getDb();

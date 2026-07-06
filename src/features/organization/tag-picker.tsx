@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { X, Tag as TagIcon } from 'lucide-react-native';
 
@@ -18,14 +18,16 @@ export function TagPicker({ visible, documentId, onClose }: TagPickerProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set());
 
-  const load = async () => {
-    const db = await getDb();
-    setTags(await getAllTags(db));
-    const assigned = await getTagsByDocument(db, documentId);
-    setAssignedIds(new Set(assigned.map((t: Tag) => t.id)));
-  };
-
-  useEffect(() => { if (visible) startTransition(() => { load(); }); }, [visible, documentId]);
+  useEffect(() => {
+    if (!visible) return;
+    const load = async () => {
+      const db = await getDb();
+      setTags(await getAllTags(db));
+      const assigned = await getTagsByDocument(db, documentId);
+      setAssignedIds(new Set(assigned.map((t: Tag) => t.id)));
+    };
+    startTransition(() => { load(); });
+  }, [visible, documentId]);
 
   const toggle = async (tagId: string) => {
     const db = await getDb();
