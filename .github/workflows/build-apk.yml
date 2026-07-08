@@ -34,17 +34,18 @@ jobs:
         run: npm ci
 
       - name: Prebuild Android project
-        run: npx expo prebuild --platform android
-
-      - name: Bundle JS for Android
         run: |
-          mkdir -p android/app/src/main/assets
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file node_modules/expo-router/entry.js \
-            --bundle-output android/app/src/main/assets/index.android.bundle \
-            --assets-dest android/app/src/main/res/
+          npx expo prebuild --platform android
+          # Enable JS bundling for all variants (including debug)
+          node -e "
+          const fs = require('fs');
+          let content = fs.readFileSync('android/app/build.gradle', 'utf8');
+          content = content.replace(
+            '// debuggableVariants = [\"liteDebug\", \"prodDebug\"]',
+            'debuggableVariants = []'
+          );
+          fs.writeFileSync('android/app/build.gradle', content);
+          "
 
       - name: Build APK (debug)
         if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
