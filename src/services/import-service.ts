@@ -5,7 +5,7 @@ import { insertDocument, getDocumentByPath } from '@/db/documents';
 import { indexDocumentContent } from '@/db/content-index';
 import type { Document, DocumentType } from '@/types';
 
-const EXTENSION_TYPE_MAP: Record<string, DocumentType> = {
+export const EXTENSION_TYPE_MAP: Record<string, DocumentType> = {
   pdf: 'pdf', epub: 'epub', mobi: 'epub',
   doc: 'doc', docx: 'docx', xls: 'xls', xlsx: 'xlsx',
   ppt: 'ppt', pptx: 'pptx', rtf: 'rtf',

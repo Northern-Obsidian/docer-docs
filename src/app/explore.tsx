@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, useWindowDimensions, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { FileText, Grid3X3, List, Plus, FolderOpen, Tag, FileSpreadsheet, Presentation, Image as ImageIcon, FileArchive } from 'lucide-react-native';
+import { FileText, Grid3X3, List, Plus, FolderOpen, Tag, FileSpreadsheet, Presentation, Image as ImageIcon, FileArchive, Scan } from 'lucide-react-native';
 import { Image } from 'expo-image';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -10,6 +10,7 @@ import { useLibraryStore } from '@/stores/library-store';
 import { useDocumentStore } from '@/stores/document-store';
 import { pickAndImportDocument } from '@/services/import-service';
 import { deleteDocument, shareDocument } from '@/services/file-operations';
+import { scanDocumentDirectory, scanWithPicker } from '@/services/auto-fetch';
 import { FileActionsSheet } from '@/features/file-manager/file-actions';
 import { CollectionPicker } from '@/features/organization/collection-picker';
 import { TagPicker } from '@/features/organization/tag-picker';
@@ -61,6 +62,37 @@ export default function LibraryScreen() {
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  const handleScanDevice = useCallback(async () => {
+    Alert.alert('Scan for Documents', 'Choose how to scan:', [
+      { text: 'App Directory', onPress: async () => {
+        setScanning(true);
+        const count = await scanDocumentDirectory();
+        setScanning(false);
+        if (count > 0) {
+          fetchDocuments();
+          fetchCategories();
+          Alert.alert('Scan Complete', `Found and imported ${count} document(s) from the app directory.`);
+        } else {
+          Alert.alert('Scan Complete', 'No new documents found.');
+        }
+      }},
+      { text: 'Pick Folder...', onPress: async () => {
+        setScanning(true);
+        const count = await scanWithPicker();
+        setScanning(false);
+        if (count > 0) {
+          fetchDocuments();
+          fetchCategories();
+          Alert.alert('Scan Complete', `Found and imported ${count} document(s).`);
+        } else {
+          Alert.alert('Scan Complete', 'No new documents found in that folder.');
+        }
+      }},
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [fetchDocuments, fetchCategories]);
 
   useEffect(() => {
     const load = async () => {
@@ -147,6 +179,13 @@ export default function LibraryScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
         <Text style={{ fontSize: 28, fontWeight: '700', color: c.text }}>Library</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          {scanning ? (
+            <ActivityIndicator size="small" color={c.primary} style={{ padding: 6 }} />
+          ) : (
+            <TouchableOpacity onPress={handleScanDevice} style={{ padding: 6 }} accessibilityLabel="Scan device for documents" accessibilityRole="button">
+              <Scan size={22} color={c.textSecondary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={handleImport} style={{ padding: 6 }} accessibilityLabel="Import document" accessibilityRole="button">
             <Plus size={22} color={c.textSecondary} />
           </TouchableOpacity>

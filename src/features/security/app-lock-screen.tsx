@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, startTransition } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Lock, Fingerprint, Shield } from 'lucide-react-native';
@@ -31,6 +31,10 @@ function clearStoredPinHash() {
   storage.remove(PIN_KEY);
 }
 
+function hasStoredPin(): boolean {
+  return getStoredPinHash() !== null;
+}
+
 export function AppLockSetup() {
   const c = useTheme();
   const appLockEnabled = useSettingsStore((s) => s.appLockEnabled);
@@ -40,20 +44,24 @@ export function AppLockSetup() {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'enter' | 'confirm'>('enter');
+  const [pendingLockType, setPendingLockType] = useState<'pin' | 'biometric'>('pin');
 
   const handleToggle = () => {
     if (!appLockEnabled) {
       Alert.alert('Enable App Lock', 'Choose your preferred lock method:', [
-        { text: 'PIN', onPress: () => { setShowPinSetup(true); setPin(''); setConfirmPin(''); setStep('enter'); } },
+        { text: 'PIN', onPress: () => { setPendingLockType('pin'); setShowPinSetup(true); setPin(''); setConfirmPin(''); setStep('enter'); } },
         { text: 'Biometric', onPress: async () => {
           const compatible = await LocalAuthentication.hasHardwareAsync();
           const enrolled = await LocalAuthentication.isEnrolledAsync();
           if (!compatible || !enrolled) {
-            Alert.alert('Not Available', 'Biometric authentication is not available on this device.');
+            Alert.alert('Not Available', 'Biometric authentication is not available on this device. Set up a biometric (fingerprint/face) in your device settings first, or use a PIN instead.');
             return;
           }
-          setAppLock(true, 'biometric');
-          Alert.alert('Enabled', 'App lock enabled with biometrics.');
+          setPendingLockType('biometric');
+          setShowPinSetup(true);
+          setPin('');
+          setConfirmPin('');
+          setStep('enter');
         }},
         { text: 'Cancel', style: 'cancel' },
       ]);
@@ -79,18 +87,27 @@ export function AppLockSetup() {
         return;
       }
       setStoredPinHash(pin);
-      setAppLock(true, 'pin');
+      setAppLock(true, pendingLockType);
       setShowPinSetup(false);
       setPin('');
       setConfirmPin('');
-      Alert.alert('Enabled', 'App lock enabled with PIN.');
+      if (pendingLockType === 'biometric') {
+        Alert.alert('Enabled', 'App lock enabled with biometrics. PIN set as fallback.');
+      } else {
+        Alert.alert('Enabled', 'App lock enabled with PIN.');
+      }
     }
-  }, [pin, confirmPin, step, setAppLock]);
+  }, [pin, confirmPin, step, setAppLock, pendingLockType]);
 
   const renderPinSetup = () => (
     <View style={{ padding: 20 }}>
       <Text style={{ fontSize: 16, fontWeight: '600', color: c.text, marginBottom: 12 }}>
-        {step === 'enter' ? 'Set a PIN code' : 'Confirm your PIN'}
+        {step === 'enter' ? `Set a ${pendingLockType === 'biometric' ? 'fallback ' : ''}PIN code` : 'Confirm your PIN'}
+      </Text>
+      <Text style={{ fontSize: 13, color: c.textSecondary, marginBottom: 16 }}>
+        {step === 'enter' && pendingLockType === 'biometric'
+          ? 'This PIN will be used as a backup if biometric authentication fails or is unavailable.'
+          : 'This PIN will be required to unlock the app.'}
       </Text>
       <TextInput
         value={step === 'confirm' ? confirmPin : pin}
@@ -151,10 +168,10 @@ export function AppLockSetup() {
               {appLockType === 'biometric' ? <Fingerprint size={22} color={c.primary} /> : <Lock size={22} color={c.primary} />}
               <View>
                 <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }}>
-                  {appLockType === 'biometric' ? 'Biometric' : 'PIN'} Lock Active
+                  {appLockType === 'biometric' ? 'Biometric + PIN' : 'PIN'} Lock Active
                 </Text>
                 <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>
-                  {appLockType === 'biometric' ? 'Use Face ID / Fingerprint to unlock' : 'Enter PIN to unlock'}
+                  {appLockType === 'biometric' ? 'Use Face ID / Fingerprint, or PIN to unlock' : 'Enter PIN to unlock'}
                 </Text>
               </View>
             </View>
@@ -176,19 +193,35 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   const [locked, setLocked] = useState(appLockEnabled);
   const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState('');
+  const [showPinFallback, setShowPinFallback] = useState(false);
+  const [biometricAttempted, setBiometricAttempted] = useState(false);
+  const [biometricLockout, setBiometricLockout] = useState(false);
 
-  const handleBiometric = useCallback(async () => {
+  const handleBiometric = useCallback(async (silent?: boolean) => {
     if (appLockType !== 'biometric') return;
+    if (biometricLockout) return;
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Unlock Docer',
       fallbackLabel: 'Use PIN',
+      disableDeviceFallback: false,
     });
     if (result.success) {
-      startTransition(() => setLocked(false));
-    } else if (result.error === 'user_fallback') {
-      // fall through to PIN
+      setLocked(false);
+    } else {
+      setBiometricAttempted(true);
+      if (result.error === 'lockout') {
+        setBiometricLockout(true);
+        setShowPinFallback(true);
+        setError('Too many failed attempts. Use your PIN.');
+      } else if (result.error === 'user_fallback') {
+        setShowPinFallback(true);
+        setError('');
+      } else {
+        setShowPinFallback(true);
+        setError('Biometric authentication failed. Use your PIN.');
+      }
     }
-  }, [appLockType]);
+  }, [appLockType, biometricLockout]);
 
   useEffect(() => {
     if (locked && appLockEnabled && appLockType === 'biometric') {
@@ -202,13 +235,25 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
       setLocked(false);
       setPinInput('');
       setError('');
+      setShowPinFallback(false);
+      setBiometricAttempted(false);
+      setBiometricLockout(false);
     } else {
       setError('Incorrect PIN');
       setPinInput('');
     }
   }, [pinInput]);
 
+  const retryBiometric = useCallback(() => {
+    setShowPinFallback(false);
+    setError('');
+    setPinInput('');
+    handleBiometric();
+  }, [handleBiometric]);
+
   if (!appLockEnabled || !locked) return <>{children}</>;
+
+  const showPinMode = appLockType === 'pin' || (appLockType === 'biometric' && showPinFallback);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
@@ -218,10 +263,10 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
         </View>
         <Text style={{ fontSize: 22, fontWeight: '700', color: c.text, marginBottom: 8 }}>Docer Locked</Text>
         <Text style={{ fontSize: 14, color: c.textSecondary, textAlign: 'center', marginBottom: 32 }}>
-          {appLockType === 'biometric' ? 'Authenticate to continue' : 'Enter your PIN to unlock'}
+          {showPinMode ? 'Enter your PIN to unlock' : 'Authenticate to continue'}
         </Text>
 
-        {appLockType === 'pin' ? (
+        {showPinMode ? (
           <>
             <TextInput
               value={pinInput}
@@ -249,10 +294,19 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
             >
               <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16 }}>Unlock</Text>
             </TouchableOpacity>
+            {appLockType === 'biometric' && !biometricLockout && (
+              <TouchableOpacity
+                onPress={retryBiometric}
+                style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              >
+                <Fingerprint size={18} color={c.primary} />
+                <Text style={{ color: c.primary, fontWeight: '500', fontSize: 14 }}>Try Biometric Again</Text>
+              </TouchableOpacity>
+            )}
           </>
         ) : (
           <TouchableOpacity
-            onPress={handleBiometric}
+            onPress={() => handleBiometric()}
             style={{
               backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 48, alignItems: 'center',
             }}
@@ -260,6 +314,12 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
             <Fingerprint size={24} color="#FFF" />
             <Text style={{ color: '#FFF', fontWeight: '600', fontSize: 16, marginTop: 8 }}>Authenticate</Text>
           </TouchableOpacity>
+        )}
+
+        {!hasStoredPin() && appLockType === 'biometric' && showPinFallback && (
+          <Text style={{ color: c.warning, fontSize: 12, marginTop: 16, textAlign: 'center' }}>
+            No fallback PIN is set. You may need to disable and re-enable app lock to set one.
+          </Text>
         )}
       </View>
     </SafeAreaView>

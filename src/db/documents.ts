@@ -1,16 +1,18 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { Document } from '@/types';
 
+const DOC_COLUMNS = `id, name, path, type, mime_type AS mimeType, size, page_count AS pageCount, author, created_at AS createdAt, modified_at AS modifiedAt, added_at AS addedAt, metadata, thumbnail_path AS thumbnailPath`;
+
 export async function getAllDocuments(db: SQLiteDatabase): Promise<Document[]> {
-  return db.getAllAsync<Document>('SELECT * FROM documents ORDER BY added_at DESC');
+  return db.getAllAsync<Document>(`SELECT ${DOC_COLUMNS} FROM documents ORDER BY added_at DESC`);
 }
 
 export async function getDocumentById(db: SQLiteDatabase, id: string): Promise<Document | null> {
-  return db.getFirstAsync<Document>('SELECT * FROM documents WHERE id = ?', id);
+  return db.getFirstAsync<Document>(`SELECT ${DOC_COLUMNS} FROM documents WHERE id = ?`, id);
 }
 
 export async function getDocumentByPath(db: SQLiteDatabase, path: string): Promise<Document | null> {
-  return db.getFirstAsync<Document>('SELECT * FROM documents WHERE path = ?', path);
+  return db.getFirstAsync<Document>(`SELECT ${DOC_COLUMNS} FROM documents WHERE path = ?`, path);
 }
 
 export async function insertDocument(db: SQLiteDatabase, doc: Omit<Document, 'addedAt'>): Promise<void> {
@@ -43,25 +45,31 @@ export async function deleteDocument(db: SQLiteDatabase, id: string): Promise<vo
 }
 
 export async function getDocumentsByType(db: SQLiteDatabase, type: string): Promise<Document[]> {
-  return db.getAllAsync<Document>('SELECT * FROM documents WHERE type = ? ORDER BY name', type);
+  return db.getAllAsync<Document>(`SELECT ${DOC_COLUMNS} FROM documents WHERE type = ? ORDER BY name`, type);
 }
 
 export async function getCategoryCounts(db: SQLiteDatabase): Promise<{ type: string; count: number }[]> {
   return db.getAllAsync<{ type: string; count: number }>(
-    "SELECT CASE WHEN type IN ('pdf','epub') THEN type WHEN type IN ('doc','docx','xls','xlsx','ppt','pptx','csv','rtf') THEN 'office' WHEN type IN ('png','jpg','jpeg','gif','webp','bmp','svg') THEN 'image' WHEN type IN ('zip','rar','7z','tar') THEN 'archive' WHEN type IN ('txt','md','json','xml','html','css','js','ts','jsx','tsx','java','c','cpp','py','php','sql','yaml') THEN 'text' ELSE 'other' END AS type, COUNT(*) as count FROM documents GROUP BY type"
+    `SELECT CASE WHEN type IN ('pdf','epub') THEN type
+      WHEN type IN ('doc','docx','xls','xlsx','ppt','pptx','csv','rtf') THEN 'office'
+      WHEN type IN ('png','jpg','jpeg','gif','webp','bmp','svg') THEN 'image'
+      WHEN type IN ('zip','rar','7z','tar') THEN 'archive'
+      WHEN type IN ('txt','md','json','xml','html','css','js','ts','jsx','tsx','java','c','cpp','py','php','sql','yaml') THEN 'text'
+      ELSE 'other' END AS type, COUNT(*) as count FROM documents GROUP BY type`
   );
 }
 
 export async function searchDocuments(db: SQLiteDatabase, query: string): Promise<Document[]> {
   return db.getAllAsync<Document>(
-    "SELECT doc.* FROM documents doc JOIN documents_fts fts ON doc.rowid = fts.rowid WHERE documents_fts MATCH ? ORDER BY rank",
+    `SELECT ${DOC_COLUMNS.replace(/^id, /, 'doc.id, ')} FROM documents doc
+     JOIN documents_fts fts ON doc.rowid = fts.rowid WHERE documents_fts MATCH ? ORDER BY rank`,
     `${query}*`
   );
 }
 
 export async function getRecentDocuments(db: SQLiteDatabase, limit = 20): Promise<(Document & { lastReadAt: string; progress: number })[]> {
   return db.getAllAsync(
-    `SELECT d.*, rh.last_read_at, rh.progress FROM documents d
+    `SELECT ${DOC_COLUMNS}, rh.last_read_at AS lastReadAt, rh.progress FROM documents d
      JOIN reading_history rh ON rh.document_id = d.id
      ORDER BY rh.last_read_at DESC LIMIT ?`,
     limit

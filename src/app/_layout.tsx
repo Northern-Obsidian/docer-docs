@@ -12,6 +12,7 @@ import { useThemeStore } from '@/stores/theme-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { THEME_COLORS } from '@/constants/theme-config';
 import { setupNotifications } from '@/services/notification-service';
+import { autoFetchOnLaunch } from '@/services/auto-fetch';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/offline-banner';
 import { AppLockGate } from '@/features/security/app-lock-screen';
@@ -35,7 +36,10 @@ export default function RootLayout() {
   useEffect(() => {
     loadFromStorage();
     loadSettings();
-    getDb().then(runMigrations);
+    getDb().then(async (db) => {
+      await runMigrations(db);
+      autoFetchOnLaunch();
+    });
     setupNotifications();
   }, [loadFromStorage, loadSettings]);
 
@@ -62,6 +66,7 @@ export default function RootLayout() {
           <Tabs.Screen name="reader" options={{ href: null }} />
           <Tabs.Screen name="notes/index" options={{ href: null }} />
           <Tabs.Screen name="stats/index" options={{ href: null }} />
+          <Tabs.Screen name="library" options={{ href: null }} />
           <Tabs.Screen name="library/collections" options={{ href: null }} />
           <Tabs.Screen name="library/tags" options={{ href: null }} />
           <Tabs.Screen name="highlights/index" options={{ href: null }} />
