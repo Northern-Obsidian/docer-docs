@@ -13,6 +13,8 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { THEME_COLORS } from '@/constants/theme-config';
 import { setupNotifications } from '@/services/notification-service';
 import { autoFetchOnLaunch } from '@/services/auto-fetch';
+import { requestPermissions } from '@obsidian_north/react-native-mediastore';
+import { appStorage } from '@/storage';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/offline-banner';
 import { AppLockGate } from '@/features/security/app-lock-screen';
@@ -38,6 +40,10 @@ export default function RootLayout() {
     loadSettings();
     getDb().then(async (db) => {
       await runMigrations(db);
+      if (!appStorage.getOnboardingComplete()) {
+        try { await requestPermissions(); } catch {}
+        appStorage.setOnboardingComplete(true);
+      }
       autoFetchOnLaunch();
     });
     setupNotifications();

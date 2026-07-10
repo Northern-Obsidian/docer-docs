@@ -1,5 +1,6 @@
 import { File, Directory, Paths } from 'expo-file-system';
 import { importFile, EXTENSION_TYPE_MAP } from '@/services/import-service';
+import { scanDeviceDocuments } from '@/services/mediastore-service';
 import { storage } from '@/storage';
 
 const SCAN_COMPLETE_KEY = 'auto_scan_complete';
@@ -10,7 +11,7 @@ function isSupportedFile(file: File): boolean {
   return SUPPORTED_EXTENSIONS.has(ext);
 }
 
-export async function scanDirectory(directory: Directory): Promise<number> {
+async function scanDirectory(directory: Directory): Promise<number> {
   let imported = 0;
   try {
     const entries = directory.list();
@@ -32,8 +33,21 @@ export async function scanDirectory(directory: Directory): Promise<number> {
   return imported;
 }
 
-export async function scanDocumentDirectory(): Promise<number> {
+async function scanDocumentDirectory(): Promise<number> {
   return scanDirectory(Paths.document);
+}
+
+export async function autoFetchOnLaunch(): Promise<number> {
+  const alreadyScanned = storage.getBoolean(SCAN_COMPLETE_KEY) ?? false;
+  if (!alreadyScanned) {
+    const count = await scanDeviceDocuments();
+    if (count === 0) {
+      await scanDocumentDirectory();
+    }
+    storage.set(SCAN_COMPLETE_KEY, true);
+    return count;
+  }
+  return 0;
 }
 
 export async function scanWithPicker(): Promise<number> {
@@ -43,16 +57,6 @@ export async function scanWithPicker(): Promise<number> {
       return scanDirectory(directory);
     }
   } catch {}
-  return 0;
-}
-
-export async function autoFetchOnLaunch(): Promise<number> {
-  const alreadyScanned = storage.getBoolean(SCAN_COMPLETE_KEY) ?? false;
-  if (!alreadyScanned) {
-    const count = await scanDocumentDirectory();
-    storage.set(SCAN_COMPLETE_KEY, true);
-    return count;
-  }
   return 0;
 }
 

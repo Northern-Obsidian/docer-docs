@@ -10,7 +10,8 @@ import { useLibraryStore } from '@/stores/library-store';
 import { useDocumentStore } from '@/stores/document-store';
 import { pickAndImportDocument } from '@/services/import-service';
 import { deleteDocument, shareDocument } from '@/services/file-operations';
-import { scanDocumentDirectory, scanWithPicker } from '@/services/auto-fetch';
+import { scanDeviceDocuments } from '@/services/mediastore-service';
+import { scanWithPicker } from '@/services/auto-fetch';
 import { FileActionsSheet } from '@/features/file-manager/file-actions';
 import { CollectionPicker } from '@/features/organization/collection-picker';
 import { TagPicker } from '@/features/organization/tag-picker';
@@ -66,16 +67,16 @@ export default function LibraryScreen() {
 
   const handleScanDevice = useCallback(async () => {
     Alert.alert('Scan for Documents', 'Choose how to scan:', [
-      { text: 'App Directory', onPress: async () => {
+      { text: 'Device (MediaStore)', onPress: async () => {
         setScanning(true);
-        const count = await scanDocumentDirectory();
+        const count = await scanDeviceDocuments();
         setScanning(false);
         if (count > 0) {
           fetchDocuments();
           fetchCategories();
-          Alert.alert('Scan Complete', `Found and imported ${count} document(s) from the app directory.`);
+          Alert.alert('Scan Complete', `Found and imported ${count} document(s) from your device.`);
         } else {
-          Alert.alert('Scan Complete', 'No new documents found.');
+          Alert.alert('Scan Complete', 'No new documents found on device.');
         }
       }},
       { text: 'Pick Folder...', onPress: async () => {
