@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { Document } from '@/types';
 
-const DOC_COLUMNS = `id, name, path, type, mime_type AS mimeType, size, page_count AS pageCount, author, created_at AS createdAt, modified_at AS modifiedAt, added_at AS addedAt, metadata, thumbnail_path AS thumbnailPath`;
+const DOC_COLUMNS = `id, name, path, type, mime_type AS mimeType, size, page_count AS pageCount, author, created_at AS createdAt, modified_at AS modifiedAt, added_at AS addedAt, metadata, thumbnail_path AS thumbnailPath, is_hidden AS isHidden`;
 
 export async function getAllDocuments(db: SQLiteDatabase): Promise<Document[]> {
   return db.getAllAsync<Document>(`SELECT ${DOC_COLUMNS} FROM documents ORDER BY added_at DESC`);
@@ -17,12 +17,12 @@ export async function getDocumentByPath(db: SQLiteDatabase, path: string): Promi
 
 export async function insertDocument(db: SQLiteDatabase, doc: Omit<Document, 'addedAt'>): Promise<void> {
   await db.runAsync(
-    `INSERT INTO documents (id, name, path, type, mime_type, size, page_count, author, created_at, modified_at, metadata, thumbnail_path)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO documents (id, name, path, type, mime_type, size, page_count, author, created_at, modified_at, metadata, thumbnail_path, is_hidden)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     doc.id, doc.name, doc.path, doc.type, doc.mimeType, doc.size, doc.pageCount,
     doc.author, doc.createdAt, doc.modifiedAt,
     doc.metadata ? JSON.stringify(doc.metadata) : null,
-    doc.thumbnailPath
+    doc.thumbnailPath, doc.isHidden ? 1 : 0
   );
 }
 
@@ -35,6 +35,7 @@ export async function updateDocument(db: SQLiteDatabase, id: string, updates: Pa
   if (updates.author !== undefined) { fields.push('author = ?'); values.push(updates.author); }
   if (updates.metadata !== undefined) { fields.push('metadata = ?'); values.push(JSON.stringify(updates.metadata)); }
   if (updates.thumbnailPath !== undefined) { fields.push('thumbnail_path = ?'); values.push(updates.thumbnailPath); }
+  if (updates.isHidden !== undefined) { fields.push('is_hidden = ?'); values.push(updates.isHidden ? 1 : 0); }
   if (fields.length === 0) return;
   values.push(id);
   await db.runAsync(`UPDATE documents SET ${fields.join(', ')} WHERE id = ?`, ...values);
@@ -71,7 +72,20 @@ export async function getRecentDocuments(db: SQLiteDatabase, limit = 20): Promis
   return db.getAllAsync(
     `SELECT ${DOC_COLUMNS}, rh.last_read_at AS lastReadAt, rh.progress FROM documents d
      JOIN reading_history rh ON rh.document_id = d.id
+     WHERE d.is_hidden = 0
      ORDER BY rh.last_read_at DESC LIMIT ?`,
     limit
   );
+}
+
+export async function toggleDocumentHidden(db: SQLiteDatabase, id: string): Promise<boolean> {
+  const doc = await getDocumentById(db, id);
+  if (!doc) return false;
+  const newHidden = doc.isHidden ? 0 : 1;
+  await db.runAsync('UPDATE documents SET is_hidden = ? WHERE id = ?', newHidden, id);
+  return !doc.isHidden;
+}
+
+export async function getVisibleDocuments(db: SQLiteDatabase): Promise<Document[]> {
+  return db.getAllAsync<Document>(`SELECT ${DOC_COLUMNS} FROM documents WHERE is_hidden = 0 ORDER BY added_at DESC`);
 }

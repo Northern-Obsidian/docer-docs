@@ -82,6 +82,8 @@ export default function RootLayout() {
           <Tabs.Screen name="settings/appearance" options={{ href: null }} />
           <Tabs.Screen name="settings/storage" options={{ href: null }} />
           <Tabs.Screen name="settings/about" options={{ href: null }} />
+          <Tabs.Screen name="settings/notifications" options={{ href: null }} />
+          <Tabs.Screen name="settings/export" options={{ href: null }} />
         </Tabs>
         </AppLockGate>
         </ErrorBoundary>

@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Lock, Fingerprint, Shield } from 'lucide-react-native';
+import { Lock, Fingerprint, Shield, EyeOff, LockKeyhole } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useSettingsStore } from '@/stores/settings-store';
 import { storage } from '@/storage';
+import { isNoteEncryptionEnabled, setNoteEncryptionEnabled } from '@/services/encryption-service';
 
 const PIN_KEY = 'app_lock_pin_hash';
 
@@ -45,6 +46,7 @@ export function AppLockSetup() {
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'enter' | 'confirm'>('enter');
   const [pendingLockType, setPendingLockType] = useState<'pin' | 'biometric'>('pin');
+  const [noteEncryption, setNoteEncryption] = useState(isNoteEncryptionEnabled());
 
   const handleToggle = () => {
     if (!appLockEnabled) {
@@ -69,6 +71,20 @@ export function AppLockSetup() {
       clearStoredPinHash();
       setAppLock(false);
     }
+  };
+
+  const handleToggleNoteEncryption = () => {
+    const newValue = !noteEncryption;
+    Alert.alert(
+      newValue ? 'Enable Note Encryption' : 'Disable Note Encryption',
+      newValue
+        ? 'New notes will be encrypted before saving. Existing notes will not be affected.'
+        : 'New notes will be saved in plain text. Existing encrypted notes will still be decrypted when read.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: newValue ? 'Enable' : 'Disable', onPress: () => { setNoteEncryptionEnabled(newValue); setNoteEncryption(newValue); } },
+      ]
+    );
   };
 
   const handlePinSubmit = useCallback(() => {
@@ -146,7 +162,7 @@ export function AppLockSetup() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
-      <View style={{ padding: 20 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Shield size={24} color={c.primary} />
@@ -163,7 +179,7 @@ export function AppLockSetup() {
         {showPinSetup && renderPinSetup()}
 
         {appLockEnabled && !showPinSetup && (
-          <View style={{ backgroundColor: c.surface, borderRadius: 12, padding: 16 }}>
+          <View style={{ backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               {appLockType === 'biometric' ? <Fingerprint size={22} color={c.primary} /> : <Lock size={22} color={c.primary} />}
               <View>
@@ -178,10 +194,58 @@ export function AppLockSetup() {
           </View>
         )}
 
-        <Text style={{ fontSize: 13, color: c.textTertiary, marginTop: 20, lineHeight: 18 }}>
+        <Text style={{ fontSize: 13, color: c.textTertiary, marginBottom: 24, lineHeight: 18 }}>
           When enabled, Docer will require authentication when reopening the app after it has been in the background.
         </Text>
-      </View>
+
+        <View style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <LockKeyhole size={20} color={c.primary} />
+            <Text style={{ fontSize: 16, fontWeight: '600', color: c.text }}>Privacy</Text>
+          </View>
+          <View style={{ backgroundColor: c.surface, borderRadius: 12, overflow: 'hidden' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 }}>
+              <LockKeyhole size={20} color={c.primary} />
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }}>Encrypt Notes</Text>
+                <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>
+                  Encode new notes before saving to database
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={{ width: 44, height: 26, borderRadius: 13, padding: 2, backgroundColor: noteEncryption ? c.primary : c.border }}
+                onPress={handleToggleNoteEncryption}
+                accessibilityLabel={`Encrypt notes: ${noteEncryption ? 'on' : 'off'}`}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: noteEncryption }}
+              >
+                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFF', transform: [{ translateX: noteEncryption ? 18 : 0 }] }} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <EyeOff size={20} color={c.primary} />
+            <Text style={{ fontSize: 16, fontWeight: '600', color: c.text }}>Hidden Documents</Text>
+          </View>
+          <Text style={{ fontSize: 13, color: c.textSecondary, marginBottom: 8 }}>
+            Hide sensitive documents from the main library. Hidden documents can be viewed by enabling "Show Hidden" in the library filter.
+          </Text>
+          <View style={{ backgroundColor: c.surface, borderRadius: 12, padding: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <EyeOff size={22} color={c.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }}>How to Hide</Text>
+                <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>
+                  Long press any document → Properties → Toggle "Hidden"
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ArrowLeft, Search, ZoomIn, ZoomOut, FileSpreadsheet, FileText, Presentation } from 'lucide-react-native';
+import { ArrowLeft, Search, X, ZoomIn, ZoomOut, FileSpreadsheet, FileText, Presentation, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -19,6 +19,10 @@ export default function OfficeReaderScreen() {
   const [html, setHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResultCount, setSearchResultCount] = useState(0);
+  const webViewRef = useRef<WebView>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -51,6 +55,27 @@ export default function OfficeReaderScreen() {
       setLoading(false);
     })();
   }, [id]);
+
+  const handleFind = useCallback((query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      webViewRef.current?.findInPage(query);
+    } else {
+      webViewRef.current?.clearFindInPage();
+    }
+  }, []);
+
+  const findNext = useCallback(() => {
+    if (searchQuery.trim()) {
+      webViewRef.current?.findInPage(searchQuery, { forward: true, next: true });
+    }
+  }, [searchQuery]);
+
+  const findPrev = useCallback(() => {
+    if (searchQuery.trim()) {
+      webViewRef.current?.findInPage(searchQuery, { forward: false, next: true });
+    }
+  }, [searchQuery]);
 
   const Icon = officeType === 'word' ? FileText : officeType === 'excel' ? FileSpreadsheet : Presentation;
 
@@ -85,11 +110,36 @@ export default function OfficeReaderScreen() {
         <TouchableOpacity onPress={() => router.back()}><ArrowLeft size={24} color={c.text} /></TouchableOpacity>
         <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: c.text, textAlign: 'center' }} numberOfLines={1}>{docName}</Text>
         <View style={{ flexDirection: 'row', gap: 4 }}>
-          <TouchableOpacity style={{ padding: 6 }}><Search size={20} color={c.textSecondary} /></TouchableOpacity>
+          <TouchableOpacity
+            style={{ padding: 6 }}
+            onPress={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); webViewRef.current?.clearFindInPage(); } }}
+          >
+            {searchOpen ? <X size={20} color={c.primary} /> : <Search size={20} color={c.textSecondary} />}
+          </TouchableOpacity>
         </View>
       </View>
 
+      {searchOpen && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border, gap: 8 }}>
+          <TextInput
+            value={searchQuery}
+            onChangeText={handleFind}
+            placeholder="Find in document..."
+            placeholderTextColor={c.textTertiary}
+            style={{ flex: 1, backgroundColor: c.background, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, color: c.text }}
+            autoFocus
+          />
+          <TouchableOpacity onPress={findPrev} style={{ padding: 6 }}>
+            <ChevronLeft size={20} color={c.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={findNext} style={{ padding: 6 }}>
+            <ChevronRight size={20} color={c.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <WebView
+        ref={webViewRef}
         source={{ html: styledHtml || '' }}
         style={{ flex: 1, backgroundColor: 'transparent' }}
         javaScriptEnabled

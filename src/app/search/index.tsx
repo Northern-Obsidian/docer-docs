@@ -9,8 +9,9 @@ import { useSearchStore } from '@/stores/search-store';
 import { EmptyState, LoadingState } from '@/components/empty-state';
 
 function HighlightedSnippet({ text }: { text: string }) {
+  const c = useTheme();
   if (!text.includes('<mark>')) {
-    return <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }} numberOfLines={2}>{text}</Text>;
+    return <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }} numberOfLines={2}>{text}</Text>;
   }
   const parts = text.split(/(<mark>|<\/mark>)/g);
   const nodes: React.ReactNode[] = [];
@@ -19,9 +20,9 @@ function HighlightedSnippet({ text }: { text: string }) {
     if (part === '<mark>') { highlighting = true; continue; }
     if (part === '</mark>') { highlighting = false; continue; }
     if (highlighting) {
-      nodes.push(<Text key={nodes.length} style={{ fontSize: 12, marginTop: 2, backgroundColor: '#fde047', color: '#1c1c1e', fontWeight: '600' }}>{part}</Text>);
+      nodes.push(<Text key={nodes.length} style={{ fontSize: 12, marginTop: 2, backgroundColor: c.warning, color: c.text, fontWeight: '600' }}>{part}</Text>);
     } else {
-      nodes.push(<Text key={nodes.length} style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{part}</Text>);
+      nodes.push(<Text key={nodes.length} style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>{part}</Text>);
     }
   }
   return <Text numberOfLines={2}>{nodes}</Text>;

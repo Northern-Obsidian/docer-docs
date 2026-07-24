@@ -20,6 +20,9 @@ const KEYS = {
   READING_GOAL_ENABLED: 'reading_goal_enabled',
   DAILY_READING_GOAL: 'daily_reading_goal',
   NOTIFICATIONS_ENABLED: 'notifications_enabled',
+  NOTIFICATION_HOUR: 'notification_hour',
+  NOTIFICATION_MINUTE: 'notification_minute',
+  GOAL_COMPLETION_NOTIFICATIONS: 'goal_completion_notifications',
   ONBOARDING_COMPLETE: 'onboarding_complete',
   APP_LOCK_ENABLED: 'app_lock_enabled',
   APP_LOCK_TYPE: 'app_lock_type',
@@ -78,6 +81,15 @@ export const appStorage = {
 
   getNotificationsEnabled: () => storage.getBoolean(KEYS.NOTIFICATIONS_ENABLED) ?? false,
   setNotificationsEnabled: (enabled: boolean) => storage.set(KEYS.NOTIFICATIONS_ENABLED, enabled),
+
+  getNotificationHour: () => storage.getNumber(KEYS.NOTIFICATION_HOUR) ?? 20,
+  setNotificationHour: (hour: number) => storage.set(KEYS.NOTIFICATION_HOUR, hour),
+
+  getNotificationMinute: () => storage.getNumber(KEYS.NOTIFICATION_MINUTE) ?? 0,
+  setNotificationMinute: (minute: number) => storage.set(KEYS.NOTIFICATION_MINUTE, minute),
+
+  getGoalCompletionNotifications: () => storage.getBoolean(KEYS.GOAL_COMPLETION_NOTIFICATIONS) ?? true,
+  setGoalCompletionNotifications: (enabled: boolean) => storage.set(KEYS.GOAL_COMPLETION_NOTIFICATIONS, enabled),
 
   getOnboardingComplete: () => storage.getBoolean(KEYS.ONBOARDING_COMPLETE) ?? false,
   setOnboardingComplete: (complete: boolean) => storage.set(KEYS.ONBOARDING_COMPLETE, complete),

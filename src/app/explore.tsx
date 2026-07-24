@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { FileText, Grid3X3, List, Plus, FolderOpen, Tag, FileSpreadsheet, Presentation, Image as ImageIcon, FileArchive, Scan } from 'lucide-react-native';
 import { Image } from 'expo-image';
+import * as Sharing from 'expo-sharing';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useLibraryStore } from '@/stores/library-store';
@@ -13,6 +14,7 @@ import { deleteDocument, shareDocument } from '@/services/file-operations';
 import { scanDeviceDocuments } from '@/services/mediastore-service';
 import { scanWithPicker } from '@/services/auto-fetch';
 import { FileActionsSheet } from '@/features/file-manager/file-actions';
+import { PropertiesPanel } from '@/features/file-manager/properties-panel';
 import { CollectionPicker } from '@/features/organization/collection-picker';
 import { TagPicker } from '@/features/organization/tag-picker';
 import type { Document, DocumentType, SortBy } from '@/types';
@@ -62,6 +64,7 @@ export default function LibraryScreen() {
   const [showActions, setShowActions] = useState(false);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [showProperties, setShowProperties] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
 
@@ -264,13 +267,30 @@ export default function LibraryScreen() {
         documentId={selectedDoc?.id || ''}
         fileName={selectedDoc?.name || ''}
         onClose={() => { setShowActions(false); setSelectedDoc(null); }}
-        onRename={() => {}}
+        onRename={() => { fetchDocuments(); fetchCategories(); }}
         onDelete={async () => { if (selectedDoc) { await deleteDocument(selectedDoc.id); fetchDocuments(); } }}
         onShare={async () => { if (selectedDoc) await shareDocument(selectedDoc.id); }}
-        onInfo={() => {}}
-        onOpenWith={() => {}}
+        onInfo={() => { setShowActions(false); setShowProperties(true); }}
+        onOpenWith={async () => {
+          if (selectedDoc) {
+            const available = await Sharing.isAvailableAsync();
+            if (available) {
+              await Sharing.shareAsync(selectedDoc.path);
+            } else {
+              Alert.alert('Not Available', 'Opening with other apps is not supported on this device.');
+            }
+          }
+          setShowActions(false);
+        }}
         onAddToCollection={() => { setShowActions(false); setShowCollectionPicker(true); }}
         onAddTag={() => { setShowActions(false); setShowTagPicker(true); }}
+      />
+
+      <PropertiesPanel
+        visible={showProperties}
+        document={selectedDoc}
+        onClose={() => { setShowProperties(false); setSelectedDoc(null); }}
+        onToggleHidden={() => { fetchDocuments(); fetchCategories(); }}
       />
 
       {selectedDoc && (

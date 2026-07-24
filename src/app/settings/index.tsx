@@ -1,9 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
   Palette, Bell, Target, Shield, Database,
-  BookMarked, Info, ChevronRight, Sun, Moon
+  BookMarked, Info, ChevronRight, Sun, Moon, Download
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -11,7 +11,6 @@ import { useTheme } from '@/hooks/use-theme';
 import { useThemeStore } from '@/stores/theme-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { THEMES } from '@/constants/theme-config';
-import { toggleNotifications } from '@/services/notification-service';
 
 interface SettingsItem {
   icon: LucideIcon;
@@ -41,7 +40,6 @@ export default function SettingsScreen() {
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled);
-  const setNotificationsEnabled = useSettingsStore((s) => s.setNotificationsEnabled);
   const readingGoalEnabled = useSettingsStore((s) => s.readingGoalEnabled);
   const appLockEnabled = useSettingsStore((s) => s.appLockEnabled);
 
@@ -50,7 +48,7 @@ export default function SettingsScreen() {
       title: 'Reading',
       items: [
         { icon: Target, label: 'Reading Goals', onPress: () => router.push('/settings/goals' as any), right: readingGoalEnabled ? 'On' : 'Off' },
-        { icon: Bell, label: 'Notifications', onPress: () => {}, isToggle: true, value: notificationsEnabled, onToggle: async () => { const ok = await toggleNotifications(!notificationsEnabled); if (ok) setNotificationsEnabled(!notificationsEnabled); else Alert.alert('Permission Denied', 'Allow notifications in system settings to enable reading reminders.'); } },
+        { icon: Bell, label: 'Notifications', onPress: () => router.push('/settings/notifications' as any), right: notificationsEnabled ? 'On' : 'Off' },
       ],
     },
     {
@@ -63,6 +61,7 @@ export default function SettingsScreen() {
       title: 'Data',
       items: [
         { icon: Database, label: 'Backup & Restore', onPress: () => router.push('/settings/backup' as any) },
+        { icon: Download, label: 'Export Data', onPress: () => router.push('/settings/export' as any) },
         { icon: BookMarked, label: 'Storage', onPress: () => router.push('/settings/storage' as any) },
       ],
     },

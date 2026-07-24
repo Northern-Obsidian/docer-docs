@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useStatsStore } from '@/stores/stats-store';
 import { getDb } from '@/db/connection';
 import { upsertTodayStats } from '@/db/stats';
+import { sendGoalCompletionNotification } from '@/services/notification-service';
 
 const GOAL_PRESETS = [
   { label: '15 min/day', type: 'daily_time', value: 15 },
@@ -23,6 +24,7 @@ export function GoalsScreen() {
   const c = useTheme();
   const readingGoalEnabled = useSettingsStore((s) => s.readingGoalEnabled);
   const dailyReadingGoal = useSettingsStore((s) => s.dailyReadingGoal);
+  const goalCompletionNotifications = useSettingsStore((s) => s.goalCompletionNotifications);
   const setReadingGoalEnabled = useSettingsStore((s) => s.setReadingGoalEnabled);
   const setDailyReadingGoal = useSettingsStore((s) => s.setDailyReadingGoal);
   const fetchTodayStats = useStatsStore((s) => s.fetchTodayStats);
@@ -32,6 +34,7 @@ export function GoalsScreen() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const goalNotifiedRef = useRef(false);
 
   useEffect(() => {
     fetchTodayStats();
@@ -65,6 +68,16 @@ export function GoalsScreen() {
   };
 
   const progress = dailyReadingGoal > 0 ? Math.min(todayStats.readingTime / 60 / dailyReadingGoal, 1) : 0;
+
+  useEffect(() => {
+    if (readingGoalEnabled && progress >= 1 && !goalNotifiedRef.current && goalCompletionNotifications) {
+      goalNotifiedRef.current = true;
+      sendGoalCompletionNotification(Math.floor(todayStats.readingTime / 60));
+    }
+    if (progress < 1) {
+      goalNotifiedRef.current = false;
+    }
+  }, [progress, readingGoalEnabled, goalCompletionNotifications, todayStats.readingTime]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>

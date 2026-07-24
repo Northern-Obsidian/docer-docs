@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { ArrowLeft, Folder, FileArchive, Search, Download, ChevronLeft } from 'lucide-react-native';
+import { ArrowLeft, Folder, FileArchive, Search, Download, ChevronLeft, X } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
 import { getDocumentById } from '@/db/documents';
 import { listArchiveEntries, extractEntry, type ArchiveEntry } from '@/readers/archive/archive-engine';
+import * as Sharing from 'expo-sharing';
 
 const PREVIEWABLE_EXTS = new Set(['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py', 'csv', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'pdf']);
 
@@ -15,11 +16,14 @@ export default function ArchiveExplorerScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [docName, setDocName] = useState('Archive');
+  const [docPath, setDocPath] = useState('');
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [currentPath, setCurrentPath] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -28,6 +32,7 @@ export default function ArchiveExplorerScreen() {
       const doc = await getDocumentById(db, id);
       if (!doc) { setError('Document not found'); setLoading(false); return; }
       setDocName(doc.name);
+      setDocPath(doc.path);
       try {
         const all = await listArchiveEntries(doc.path);
         setEntries(all);
@@ -38,17 +43,21 @@ export default function ArchiveExplorerScreen() {
     })();
   }, [id]);
 
-  const filteredEntries = currentPath
-    ? entries.filter((e) => {
-        if (!e.path.startsWith(currentPath)) return false;
-        const relative = e.path.slice(currentPath.length);
-        return relative && !relative.includes('/');
-      })
-    : entries.filter((e) => !e.path.includes('/'));
+  const filteredEntries = searchOpen && searchQuery.trim()
+    ? entries.filter((e) => !e.isDirectory && e.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : currentPath
+      ? entries.filter((e) => {
+          if (!e.path.startsWith(currentPath)) return false;
+          const relative = e.path.slice(currentPath.length);
+          return relative && !relative.includes('/');
+        })
+      : entries.filter((e) => !e.path.includes('/'));
 
   const handleNavigate = useCallback((entry: ArchiveEntry) => {
     if (entry.isDirectory) {
       setCurrentPath(entry.path + (entry.path.endsWith('/') ? '' : '/'));
+      setSearchOpen(false);
+      setSearchQuery('');
     } else {
       const ext = entry.name.split('.').pop()?.toLowerCase() || '';
       if (PREVIEWABLE_EXTS.has(ext)) {
@@ -73,6 +82,20 @@ export default function ArchiveExplorerScreen() {
     parts.pop();
     setCurrentPath(parts.length > 0 ? parts.join('/') + '/' : '');
   }, [currentPath]);
+
+  const handleDownloadAll = useCallback(async () => {
+    if (!docPath) return;
+    try {
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(docPath);
+      } else {
+        Alert.alert('Not Available', 'Sharing is not available on this device.');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to share archive.');
+    }
+  }, [docPath]);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -109,12 +132,45 @@ export default function ArchiveExplorerScreen() {
         <TouchableOpacity onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button"><ArrowLeft size={24} color={c.text} /></TouchableOpacity>
         <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: c.text, textAlign: 'center' }} numberOfLines={1}>{docName}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity style={{ padding: 6 }} accessibilityLabel="Search archive" accessibilityRole="button"><Search size={20} color={c.textSecondary} /></TouchableOpacity>
-          <TouchableOpacity style={{ padding: 6 }} accessibilityLabel="Download archive" accessibilityRole="button"><Download size={20} color={c.textSecondary} /></TouchableOpacity>
+          <TouchableOpacity
+            style={{ padding: 6 }}
+            onPress={() => { setSearchOpen(!searchOpen); if (searchOpen) setSearchQuery(''); }}
+            accessibilityLabel="Search archive"
+            accessibilityRole="button"
+          >
+            {searchOpen ? <X size={20} color={c.primary} /> : <Search size={20} color={c.textSecondary} />}
+          </TouchableOpacity>
+          <TouchableOpacity style={{ padding: 6 }} onPress={handleDownloadAll} accessibilityLabel="Download archive" accessibilityRole="button">
+            <Download size={20} color={c.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {currentPath !== '' && (
+      {searchOpen && (
+        <View style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.background, borderRadius: 10, paddingHorizontal: 12 }}>
+            <Search size={16} color={c.textSecondary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search files..."
+              placeholderTextColor={c.textTertiary}
+              style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 15, color: c.text }}
+              autoFocus
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <X size={16} color={c.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 4 }}>
+            {filteredEntries.length} file{filteredEntries.length !== 1 ? 's' : ''} found
+          </Text>
+        </View>
+      )}
+
+      {currentPath !== '' && !searchOpen && (
         <TouchableOpacity
           onPress={goUp}
           style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border }}
@@ -159,7 +215,9 @@ export default function ArchiveExplorerScreen() {
         ListEmptyComponent={
           <View style={{ padding: 40, alignItems: 'center' }}>
             <FileArchive size={48} color={c.textTertiary} />
-            <Text style={{ color: c.textSecondary, marginTop: 12, fontSize: 16 }}>Archive is empty</Text>
+            <Text style={{ color: c.textSecondary, marginTop: 12, fontSize: 16 }}>
+              {searchOpen ? 'No matching files' : 'Archive is empty'}
+            </Text>
           </View>
         }
       />

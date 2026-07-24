@@ -1,11 +1,27 @@
 import { Platform } from 'react-native';
+import { File, Paths } from 'expo-file-system';
 
 export function getPdfSourceUri(path: string): string {
   if (Platform.OS === 'web') return path;
   return path.startsWith('file://') ? path : `file://${path}`;
 }
 
-export function getViewerHtml(): string {
+let cachedPdfJsBase64: string | null = null;
+let cachedWorkerBase64: string | null = null;
+
+async function loadPdfJsAssets(): Promise<{ pdfJs: string; worker: string }> {
+  if (cachedPdfJsBase64 && cachedWorkerBase64) {
+    return { pdfJs: cachedPdfJsBase64, worker: cachedWorkerBase64 };
+  }
+  const pdfJsFile = new File(Paths.bundle, 'assets', 'pdfjs', 'pdf.min.js');
+  const workerFile = new File(Paths.bundle, 'assets', 'pdfjs', 'pdf.worker.min.js');
+  cachedPdfJsBase64 = await pdfJsFile.base64();
+  cachedWorkerBase64 = await workerFile.base64();
+  return { pdfJs: cachedPdfJsBase64, worker: cachedWorkerBase64 };
+}
+
+export async function getViewerHtml(): Promise<string> {
+  const { pdfJs, worker } = await loadPdfJsAssets();
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -44,15 +60,27 @@ html,body{width:100%;height:100%;overflow:hidden;background:#525659}
 </div>
 <script>
 var W=window, P=W.pdfjsLib, D=document, pdfDoc=null, scale=1.5, cache={}, textCache={}, searchMatches=[], searchIdx=-1;
+var PDFJS_BASE64='${pdfJs}';
+var WORKER_BASE64='${worker}';
 function injectPDFjs(cb){
   if(typeof pdfjsLib!=='undefined'&&pdfjsLib){cb();return}
+  var bin=atob(PDFJS_BASE64);
+  var arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  var blob=new Blob([arr],{type:'application/javascript'});
+  var url=URL.createObjectURL(blob);
   var s=D.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  s.src=url;
   s.onload=function(){
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    URL.revokeObjectURL(url);
+    var wbin=atob(WORKER_BASE64);
+    var warr=new Uint8Array(wbin.length);
+    for(var j=0;j<wbin.length;j++)warr[j]=wbin.charCodeAt(j);
+    var wblob=new Blob([warr],{type:'application/javascript'});
+    pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(wblob);
     cb();
   };
-  s.onerror=function(){ D.getElementById('viewer').innerHTML='<div class="error">Failed to load PDF engine.\\nInternet required for first use.</div>' };
+  s.onerror=function(){ D.getElementById('viewer').innerHTML='<div class="error">Failed to load PDF engine.</div>' };
   D.head.appendChild(s);
 }
 function render(n,thumbScale){

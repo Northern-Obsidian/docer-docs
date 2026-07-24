@@ -1,15 +1,21 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-const CHANNEL_ID = 'reading-reminder';
-const NOTIFICATION_ID = 'daily-reading-reminder';
+const REMINDER_CHANNEL = 'reading-reminder';
+const GOAL_CHANNEL = 'goal-completion';
+const DAILY_REMINDER_ID = 'daily-reading-reminder';
 
 export async function setupNotifications() {
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+    await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL, {
       name: 'Reading Reminders',
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 100, 200, 100],
+    });
+    await Notifications.setNotificationChannelAsync(GOAL_CHANNEL, {
+      name: 'Goal Completions',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 200, 100, 200],
     });
   }
 }
@@ -23,21 +29,48 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 export async function scheduleDailyReminder(hour: number = 20, minute: number = 0) {
-  await cancelAllReminders();
+  await Notifications.cancelScheduledNotificationAsync(DAILY_REMINDER_ID);
 
   await Notifications.scheduleNotificationAsync({
-    identifier: NOTIFICATION_ID,
+    identifier: DAILY_REMINDER_ID,
     content: {
       title: 'Time to read!',
       body: 'You have a reading goal for today. Open a document and start reading.',
       sound: true,
       priority: Notifications.AndroidNotificationPriority.DEFAULT,
+      ...(Platform.OS === 'android' ? { channelId: REMINDER_CHANNEL } : {}),
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
     },
+  });
+}
+
+export async function sendGoalCompletionNotification(minutesRead: number) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Goal completed!',
+      body: `You've read for ${minutesRead} minutes today. Great work!`,
+      sound: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+      ...(Platform.OS === 'android' ? { channelId: GOAL_CHANNEL } : {}),
+    },
+    trigger: null,
+  });
+}
+
+export async function sendStreakNotification(streakDays: number) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: `${streakDays}-day streak!`,
+      body: `You've been reading for ${streakDays} days in a row. Keep it up!`,
+      sound: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+      ...(Platform.OS === 'android' ? { channelId: GOAL_CHANNEL } : {}),
+    },
+    trigger: null,
   });
 }
 

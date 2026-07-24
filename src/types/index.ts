@@ -14,6 +14,7 @@ export interface Document {
   addedAt: string;
   metadata: Record<string, unknown> | null;
   thumbnailPath: string | null;
+  isHidden: boolean;
 }
 
 export interface ReadingHistory {
@@ -57,6 +58,7 @@ export interface Note {
   content: string;
   createdAt: string;
   updatedAt: string;
+  isEncrypted: boolean;
 }
 
 export interface Collection {

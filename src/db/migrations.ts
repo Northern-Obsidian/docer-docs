@@ -180,6 +180,15 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_content_indexed_at ON document_content(indexed_at);
     `);
   },
+
+  // v5: Hidden documents and note encryption support
+  async (db: SQLiteDatabase) => {
+    await db.execAsync(`
+      ALTER TABLE documents ADD COLUMN is_hidden INTEGER DEFAULT 0;
+      ALTER TABLE notes ADD COLUMN is_encrypted INTEGER DEFAULT 0;
+      CREATE INDEX IF NOT EXISTS idx_documents_hidden ON documents(is_hidden);
+    `);
+  },
 ];
 
 const MIGRATION_TABLE = `

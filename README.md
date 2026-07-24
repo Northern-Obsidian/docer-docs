@@ -1,56 +1,83 @@
-# Welcome to your Expo app 👋
+# DOCER
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An offline-first document viewer, reader, and file management platform built with React Native and Expo.
 
-## Get started
+## Features
+
+- **Multi-format support**: PDF, EPUB, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT, Markdown, CSV, code files, images, and archives
+- **6 specialized readers**: PDF (WebView/PDF.js), EPUB (custom parser), Office (mammoth/xlsx/XML), Text/Code (syntax highlighting), Image (zoom/rotate), Archive (browse/extract)
+- **Full-text search**: FTS5-powered search across document names, content, and notes
+- **Annotations**: Bookmarks, highlights (5 colors), and notes per document
+- **Organization**: Collections, tags, favorites, and document filtering
+- **Reading statistics**: Daily stats, streaks, weekly/monthly charts
+- **Themes**: 9 built-in themes (light, dark, AMOLED, sepia, paper, midnight, forest, ocean, glass)
+- **Security**: PIN/biometric app lock, note encryption, hidden documents
+- **Export**: Export library, notes, highlights, bookmarks, and stats as CSV
+- **Backup**: Database backup and restore with sharing
+- **Offline-first**: No cloud dependency, all data stored locally
+
+## Tech Stack
+
+- Expo SDK 56 with Expo Router (file-based routing)
+- React Native 0.85.3, React 19.2.3
+- TypeScript 6.0
+- NativeWind / Tailwind CSS 3.4
+- Zustand for state management
+- SQLite (expo-sqlite) with FTS5 full-text search
+- MMKV for fast key-value storage
+- Lucide icons
+- React Native WebView for PDF, EPUB, text, and office rendering
+- React Native Reanimated for animations
+
+## Get Started
 
 1. Install dependencies
-
    ```bash
    npm install
    ```
 
 2. Start the app
-
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Open in:
+   - [Expo Go](https://expo.dev/go) (limited)
+   - [Development build](https://docs.expo.dev/develop/development-builds/introduction/)
+   - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+   - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Project Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/
+  app/              # Expo Router file-based routes
+    (tabs)/         # Tab navigation screens
+    reader/         # Document reader screens (pdf, epub, text, image, office, archive)
+    settings/       # Settings sub-screens
+  components/       # Reusable UI components
+  constants/        # Theme configs, constants
+  db/               # SQLite database, migrations, queries
+  features/         # Feature modules (annotations, backup, file-manager, security, sharing, export)
+  hooks/            # Custom React hooks
+  readers/          # Reader engines (pdf, epub, office, text, archive)
+  services/         # Business logic (import, export, notifications, file operations)
+  storage/          # MMKV key-value storage
+  stores/           # Zustand state stores
+  types/            # TypeScript type definitions
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Supported Formats
 
-### Other setup steps
+| Category | Formats |
+|----------|---------|
+| PDF | .pdf |
+| eBooks | .epub |
+| Office | .doc, .docx, .xls, .xlsx, .ppt, .pptx, .csv, .rtf |
+| Text/Code | .txt, .md, .json, .xml, .html, .css, .js, .ts, .py, .java, .c, .cpp, .php, .sql, .yaml |
+| Images | .png, .jpg, .jpeg, .gif, .webp, .bmp, .svg |
+| Archives | .zip, .cbz, .tar |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## License
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Cadmus Labs

@@ -2,9 +2,11 @@ import { Text, Animated } from 'react-native';
 import { useEffect, useState } from 'react';
 import { WifiOff } from 'lucide-react-native';
 import { useNetInfo } from '@/hooks/use-net-info';
+import { useTheme } from '@/hooks/use-theme';
 
 export function OfflineBanner() {
   const { isOffline } = useNetInfo();
+  const c = useTheme();
   const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export function OfflineBanner() {
     <Animated.View
       style={{
         opacity,
-        backgroundColor: '#FF6B6B',
+        backgroundColor: c.error,
         paddingHorizontal: 16,
         paddingVertical: 10,
         flexDirection: 'row',

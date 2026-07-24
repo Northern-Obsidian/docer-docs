@@ -66,6 +66,7 @@ export async function importFile(uri: string, fileName: string, mimeType: string
       addedAt: now,
       metadata: null,
       thumbnailPath: null,
+      isHidden: false,
     };
 
     await insertDocument(db, doc);

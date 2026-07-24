@@ -4,6 +4,7 @@ import { Pencil, Copy, Move, Trash2, Share2, Info, ExternalLink, FolderOpen, Tag
 
 import { useTheme } from '@/hooks/use-theme';
 import { renameDocument, duplicateDocument, copyDocument, moveDocument, deleteDocument, shareDocument } from '@/services/file-operations';
+import { FolderPicker } from './folder-picker';
 
 interface FileActionsProps {
   visible: boolean;
@@ -27,6 +28,7 @@ export function FileActionsSheet({ visible, fileName, documentId, onClose, onRen
   const [showMoveCopy, setShowMoveCopy] = useState<'move' | 'copy' | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [folderPath, setFolderPath] = useState('');
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
 
   const handleRename = async () => {
     if (!inputValue.trim()) return;
@@ -128,22 +130,32 @@ export function FileActionsSheet({ visible, fileName, documentId, onClose, onRen
               <Text style={{ fontSize: 16, fontWeight: '600', color: c.text, marginBottom: 12 }}>
                 {showMoveCopy === 'move' ? 'Move to...' : 'Copy to...'}
               </Text>
-              <TextInput
-                value={folderPath}
-                onChangeText={setFolderPath}
-                style={{ backgroundColor: c.background, borderRadius: 12, padding: 14, fontSize: 16, color: c.text, borderWidth: 1, borderColor: c.border, marginBottom: 16 }}
-                autoFocus
-                placeholder="/path/to/destination"
-                placeholderTextColor={c.textTertiary}
-              />
+              <TouchableOpacity
+                onPress={() => setShowFolderPicker(true)}
+                style={{ backgroundColor: c.background, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: c.border, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              >
+                <FolderOpen size={18} color={c.primary} />
+                <Text style={{ flex: 1, fontSize: 15, color: folderPath ? c.text : c.textTertiary }} numberOfLines={1}>
+                  {folderPath || 'Choose destination folder...'}
+                </Text>
+              </TouchableOpacity>
               <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity onPress={() => setShowMoveCopy(null)} style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => { setShowMoveCopy(null); setFolderPath(''); }} style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, alignItems: 'center' }}>
                   <Text style={{ color: c.text, fontWeight: '600' }}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleMoveCopy} style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center' }}>
+                <TouchableOpacity
+                  onPress={handleMoveCopy}
+                  disabled={!folderPath.trim()}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center', opacity: folderPath.trim() ? 1 : 0.5 }}
+                >
                   <Text style={{ color: '#FFF', fontWeight: '600' }}>{showMoveCopy === 'move' ? 'Move' : 'Copy'}</Text>
                 </TouchableOpacity>
               </View>
+              <FolderPicker
+                visible={showFolderPicker}
+                onSelect={(path) => { setFolderPath(path); setShowFolderPicker(false); }}
+                onCancel={() => setShowFolderPicker(false)}
+              />
             </View>
           ) : (
             <View style={{ backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 }}>

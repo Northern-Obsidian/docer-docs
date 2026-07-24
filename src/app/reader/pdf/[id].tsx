@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 
 import { PdfToolbar } from '@/readers/pdf/pdf-toolbar';
 import { PdfBottomBar } from '@/readers/pdf/pdf-bottom-bar';
@@ -30,6 +31,7 @@ export default function PDFReaderScreen() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showHighlightToolbar, setShowHighlightToolbar] = useState(false);
+  const [showThumbnailList, setShowThumbnailList] = useState(false);
 
   const currentPage = useReaderStore((s) => s.currentPage);
   const zoom = useReaderStore((s) => s.zoom);
@@ -110,6 +112,16 @@ export default function PDFReaderScreen() {
     }
   }, []);
 
+  const handleShare = useCallback(async () => {
+    if (!docPath) return;
+    try {
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(docPath);
+      }
+    } catch {}
+  }, [docPath]);
+
   const handleHighlight = useCallback(async (color: string) => {
     if (!id || !selectedText) return;
     const db = await getDb();
@@ -156,7 +168,7 @@ export default function PDFReaderScreen() {
         onToggleSearch={() => actionsRef.current?.toggleSearch()}
         onHighlight={() => setShowHighlightToolbar(true)}
         onNote={() => setShowNoteModal(true)}
-        onShare={() => {}}
+        onShare={handleShare}
       />
 
       <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -220,26 +232,43 @@ export default function PDFReaderScreen() {
 
 function PdfThumbnailSidebar({ pageCount, currentPage, onPageSelect }: { pageCount: number; currentPage: number; onPageSelect: (page: number) => void }) {
   const c = useTheme();
+  const totalPages = Math.min(pageCount, 200);
+
   return (
     <View style={{ width: 80, backgroundColor: c.surface, borderRightWidth: 1, borderRightColor: c.border }}>
       <Text style={{ color: c.textSecondary, fontSize: 11, textAlign: 'center', padding: 8 }}>Pages</Text>
-      <View style={{ padding: 4 }}>
-        {Array.from({ length: Math.min(pageCount, 100) }, (_, i) => i + 1).map((page) => (
-          <View
-            key={page}
-            onTouchEnd={() => onPageSelect(page)}
-            style={{
-              height: 60, marginBottom: 6, borderRadius: 4,
-              backgroundColor: page === currentPage ? c.primaryContainer : c.surfaceVariant,
-              borderWidth: page === currentPage ? 2 : 1,
-              borderColor: page === currentPage ? c.primary : c.border,
-              alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Text style={{ fontSize: 10, color: page === currentPage ? c.primary : c.textSecondary }}>{page}</Text>
-          </View>
-        ))}
-      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 4 }} showsVerticalScrollIndicator={false}>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+          const isCurrent = page === currentPage;
+          const isNear = Math.abs(page - currentPage) <= 2;
+          return (
+            <TouchableOpacity
+              key={page}
+              onPress={() => onPageSelect(page)}
+              style={{
+                height: 56, marginBottom: 4, borderRadius: 6,
+                backgroundColor: isCurrent ? c.primaryContainer : c.surfaceVariant,
+                borderWidth: isCurrent ? 2 : 1,
+                borderColor: isCurrent ? c.primary : c.border,
+                alignItems: 'center', justifyContent: 'center',
+                opacity: isCurrent || isNear ? 1 : 0.6,
+              }}
+              accessibilityLabel={`Page ${page}${isCurrent ? ', current page' : ''}`}
+              accessibilityRole="button"
+            >
+              <Text style={{
+                fontSize: 10, fontWeight: isCurrent ? '700' : '400',
+                color: isCurrent ? c.primary : c.textSecondary,
+              }}>
+                {page}
+              </Text>
+              {isCurrent && (
+                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: c.primary, marginTop: 2 }} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }

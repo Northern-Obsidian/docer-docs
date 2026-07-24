@@ -43,11 +43,15 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, s
   const c = useTheme();
   const ref = useRef<WebView>(null);
   const uri = getPdfSourceUri(path);
-  const html = getViewerHtml();
+  const [html, setHtml] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults] = useState<{ page: number; snippet: string }[]>([]);
   const [searchResultCount] = useState(0);
+
+  useEffect(() => {
+    getViewerHtml().then(setHtml);
+  }, []);
 
   useEffect(() => {
     if (actionRef) {
@@ -79,6 +83,15 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, s
   const goToSearchResult = useCallback((page: number) => {
     ref.current?.postMessage(JSON.stringify({ type: 'go', page }));
   }, []);
+
+  if (!html) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.readerBackground, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={c.primary} />
+        <Text style={{ color: c.textSecondary, marginTop: 12, fontSize: 14 }}>Loading PDF engine...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: c.readerBackground }}>

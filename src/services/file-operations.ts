@@ -104,7 +104,3 @@ export async function moveDocument(id: string, destinationDir: string): Promise<
     return false;
   }
 }
-
-export async function pickDestinationFolder(): Promise<string | null> {
-  return null;
-}
