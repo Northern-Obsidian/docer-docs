@@ -1,8 +1,29 @@
-import { getDocuments, requestPermissions, checkPermissions, SortField, SortOrder, type DocumentItem, type SortOptions } from '@obsidian_north/react-native-mediastore';
+import {
+  getDocuments, requestPermissions, checkPermissions,
+  getStatistics, getRecent, getDuplicates, getFolderStatistics,
+  getLargestFiles, search, refresh,
+  useMediaChangeEvent,
+  SortField, SortOrder,
+  type DocumentItem, type AudioItem, type VideoItem, type ImageItem,
+  type SortOptions, type FilterOptions,
+  type PaginationOptions, type MediaStoreStatistics,
+  type DuplicateItem, type FolderStatistics,
+  type SearchResult, type SearchOptions,
+  type MediaChangeEvent, type LibraryResult,
+} from '@obsidian_north/react-native-mediastore';
 import { importFile } from '@/services/import-service';
 import { getDb } from '@/db/connection';
 import { getDocumentByPath } from '@/db/documents';
 import type { Document } from '@/types';
+
+export { requestPermissions, useMediaChangeEvent, SortField, SortOrder };
+
+export type {
+  DocumentItem, AudioItem, VideoItem, ImageItem,
+  SortOptions, FilterOptions, PaginationOptions,
+  MediaStoreStatistics, DuplicateItem, FolderStatistics,
+  SearchResult, SearchOptions, MediaChangeEvent, LibraryResult,
+};
 
 export interface MediaStoreDocument extends DocumentItem {
   imported: boolean;
@@ -17,7 +38,7 @@ async function ensurePermissions(): Promise<boolean> {
 
 export async function fetchDeviceDocuments(
   sort: SortOptions = { field: SortField.DateAdded, order: SortOrder.Descending },
-  pagination?: { limit?: number; offset?: number }
+  pagination?: PaginationOptions
 ): Promise<MediaStoreDocument[]> {
   const granted = await ensurePermissions();
   if (!granted) return [];
@@ -71,4 +92,74 @@ export async function scanDeviceDocuments(): Promise<number> {
 export async function hasMediaStorePermissions(): Promise<boolean> {
   const status = await checkPermissions();
   return status.granted;
+}
+
+export async function fetchDeviceStatistics(): Promise<MediaStoreStatistics | null> {
+  const granted = await ensurePermissions();
+  if (!granted) return null;
+  try {
+    return await getStatistics();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchDeviceRecent(
+  mediaType?: 'audio' | 'video' | 'image' | 'document',
+  limit?: number
+): Promise<(AudioItem | VideoItem | ImageItem | DocumentItem)[]> {
+  const granted = await ensurePermissions();
+  if (!granted) return [];
+  try {
+    return await getRecent(mediaType, limit);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchDeviceDuplicates(
+  mediaType?: 'audio' | 'video' | 'image' | 'document'
+): Promise<DuplicateItem[]> {
+  const granted = await ensurePermissions();
+  if (!granted) return [];
+  try {
+    return await getDuplicates(mediaType);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchFolderStatistics(folderPath?: string): Promise<FolderStatistics[]> {
+  const granted = await ensurePermissions();
+  if (!granted) return [];
+  try {
+    return await getFolderStatistics(folderPath);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchLargestFiles(
+  mediaType?: 'audio' | 'video' | 'image' | 'document',
+  limit?: number
+): Promise<(AudioItem | VideoItem | ImageItem | DocumentItem)[]> {
+  const granted = await ensurePermissions();
+  if (!granted) return [];
+  try {
+    return await getLargestFiles(mediaType, limit);
+  } catch {
+    return [];
+  }
+}
+
+export async function searchDevice(options: SearchOptions): Promise<SearchResult> {
+  const granted = await ensurePermissions();
+  if (!granted) {
+    return { audio: [], videos: [], images: [], documents: [], totalCount: 0, query: options.query };
+  }
+  return search(options);
+}
+
+export async function refreshDeviceCache(): Promise<void> {
+  refresh();
 }

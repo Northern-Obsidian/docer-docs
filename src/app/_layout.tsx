@@ -13,7 +13,8 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { THEME_COLORS } from '@/constants/theme-config';
 import { setupNotifications } from '@/services/notification-service';
 import { autoFetchOnLaunch } from '@/services/auto-fetch';
-import { requestPermissions } from '@obsidian_north/react-native-mediastore';
+import { requestPermissions, useMediaChangeEvent } from '@/services/mediastore-service';
+import { useLibraryStore } from '@/stores/library-store';
 import { appStorage } from '@/storage';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { OfflineBanner } from '@/components/offline-banner';
@@ -33,7 +34,12 @@ export default function RootLayout() {
   const theme = useThemeStore((s) => s.theme);
   const loadFromStorage = useThemeStore((s) => s.loadFromStorage);
   const loadSettings = useSettingsStore((s) => s.loadFromStorage);
+  const refreshLibrary = useLibraryStore((s) => s.refreshLibrary);
   const colors = THEME_COLORS[theme];
+
+  useMediaChangeEvent(() => {
+    refreshLibrary();
+  });
 
   useEffect(() => {
     loadFromStorage();
