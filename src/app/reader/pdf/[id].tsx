@@ -31,8 +31,6 @@ export default function PDFReaderScreen() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showHighlightToolbar, setShowHighlightToolbar] = useState(false);
-  const [showThumbnailList, setShowThumbnailList] = useState(false);
-
   const currentPage = useReaderStore((s) => s.currentPage);
   const zoom = useReaderStore((s) => s.zoom);
   const setTotalPages = useReaderStore((s) => s.setTotalPages);

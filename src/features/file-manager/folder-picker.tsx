@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { ChevronLeft, Folder, ChevronRight } from 'lucide-react-native';
 import { Directory, Paths } from 'expo-file-system';
@@ -14,23 +14,18 @@ interface FolderPickerProps {
 export function FolderPicker({ visible, onSelect, onCancel }: FolderPickerProps) {
   const c = useTheme();
   const [currentDir, setCurrentDir] = useState<Directory>(Paths.document);
-  const [entries, setEntries] = useState<Directory[]>([]);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!visible) return;
+  if (visible && currentDir.uri !== Paths.document.uri) {
     setCurrentDir(Paths.document);
-  }, [visible]);
+  }
 
-  useEffect(() => {
-    if (!visible) return;
-    setError('');
+  const { entries, error } = useMemo(() => {
+    if (!visible) return { entries: [] as Directory[], error: '' };
     try {
       const items = currentDir.list().filter((item): item is Directory => item instanceof Directory);
-      setEntries(items.sort((a, b) => a.name.localeCompare(b.name)));
+      return { entries: items.sort((a, b) => a.name.localeCompare(b.name)), error: '' };
     } catch {
-      setError('Cannot read this directory');
-      setEntries([]);
+      return { entries: [] as Directory[], error: 'Cannot read this directory' };
     }
   }, [currentDir, visible]);
 

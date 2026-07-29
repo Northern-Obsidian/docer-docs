@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { ArrowLeft, FileText, FileJson, FileSpreadsheet, Download, BookMarked, StickyNote, Highlighter, BarChart3 } from 'lucide-react-native';
+import { ArrowLeft, FileText, FileSpreadsheet, Download, BookMarked, StickyNote, Highlighter, BarChart3 } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 import { File, Directory, Paths } from 'expo-file-system';
 
@@ -96,8 +96,10 @@ export function ExportScreen() {
           break;
         }
         case 'stats': {
-          const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const to = new Date().toISOString().split('T')[0];
+          const fromDate = new Date(timestamp + 'T00:00:00Z');
+          fromDate.setDate(fromDate.getDate() - 90);
+          const from = fromDate.toISOString().split('T')[0];
+          const to = timestamp;
           const stats = await getDateRangeStats(db, from, to);
           const rows = (stats as any[]).map((s) => ({
             date: s.date, pagesRead: s.pages_read, readingTimeMinutes: Math.round(s.reading_time / 60),

@@ -1,21 +1,11 @@
 import { getDocuments, requestPermissions, checkPermissions, SortField, SortOrder, type DocumentItem, type SortOptions } from '@obsidian_north/react-native-mediastore';
-import { EXTENSION_TYPE_MAP, importFile } from '@/services/import-service';
+import { importFile } from '@/services/import-service';
 import { getDb } from '@/db/connection';
 import { getDocumentByPath } from '@/db/documents';
-import type { Document, DocumentType } from '@/types';
-
-const MEDIASTORE_DOC_EXTENSIONS = Object.keys(EXTENSION_TYPE_MAP);
+import type { Document } from '@/types';
 
 export interface MediaStoreDocument extends DocumentItem {
   imported: boolean;
-}
-
-function mapDocumentType(ext: string): DocumentType {
-  return EXTENSION_TYPE_MAP[ext] || 'unknown';
-}
-
-function isoFromEpoch(epoch: number): string {
-  return new Date(epoch * 1000).toISOString();
 }
 
 async function ensurePermissions(): Promise<boolean> {
@@ -48,7 +38,6 @@ export async function importDeviceDocument(item: DocumentItem): Promise<Document
   const existing = await getDocumentByPath(db, item.uri);
   if (existing) return existing;
 
-  const ext = item.extension?.toLowerCase().replace('.', '') || '';
   return importFile(item.uri, item.name, item.mimeType || null);
 }
 

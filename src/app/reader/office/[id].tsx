@@ -21,7 +21,6 @@ export default function OfficeReaderScreen() {
   const [error, setError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResultCount, setSearchResultCount] = useState(0);
   const webViewRef = useRef<WebView>(null);
 
   useEffect(() => {
@@ -59,21 +58,21 @@ export default function OfficeReaderScreen() {
   const handleFind = useCallback((query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
-      webViewRef.current?.findInPage(query);
+      (webViewRef.current as any)?.findInPage?.(query);
     } else {
-      webViewRef.current?.clearFindInPage();
+      (webViewRef.current as any)?.clearFindInPage?.();
     }
   }, []);
 
   const findNext = useCallback(() => {
     if (searchQuery.trim()) {
-      webViewRef.current?.findInPage(searchQuery, { forward: true, next: true });
+      (webViewRef.current as any)?.findInPage?.(searchQuery, { forward: true, next: true });
     }
   }, [searchQuery]);
 
   const findPrev = useCallback(() => {
     if (searchQuery.trim()) {
-      webViewRef.current?.findInPage(searchQuery, { forward: false, next: true });
+      (webViewRef.current as any)?.findInPage?.(searchQuery, { forward: false, next: true });
     }
   }, [searchQuery]);
 
@@ -112,7 +111,7 @@ export default function OfficeReaderScreen() {
         <View style={{ flexDirection: 'row', gap: 4 }}>
           <TouchableOpacity
             style={{ padding: 6 }}
-            onPress={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); webViewRef.current?.clearFindInPage(); } }}
+            onPress={() => { setSearchOpen(!searchOpen); if (searchOpen) { setSearchQuery(''); (webViewRef.current as any)?.clearFindInPage?.(); } }}
           >
             {searchOpen ? <X size={20} color={c.primary} /> : <Search size={20} color={c.textSecondary} />}
           </TouchableOpacity>

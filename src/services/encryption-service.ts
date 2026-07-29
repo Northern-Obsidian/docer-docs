@@ -13,11 +13,10 @@ export function setNoteEncryptionEnabled(enabled: boolean): void {
 }
 
 function getOrCreateAesKey(): string {
-  let key = storage.getString(AES_KEY_STORE);
-  if (!key) {
-    key = CryptoJS.lib.WordArray.random(256 / 8).toString();
-    storage.set(AES_KEY_STORE, key);
-  }
+  const existing = storage.getString(AES_KEY_STORE);
+  if (existing) return existing;
+  const key = CryptoJS.lib.WordArray.random(256 / 8).toString();
+  storage.set(AES_KEY_STORE, key);
   return key;
 }
 

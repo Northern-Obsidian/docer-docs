@@ -5,7 +5,7 @@ import * as Sharing from 'expo-sharing';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useLibraryStore } from '@/stores/library-store';
-import type { Document, DocumentType } from '@/types';
+import type { DocumentType } from '@/types';
 
 function getTypeIcon(type: DocumentType) {
   switch (type) {

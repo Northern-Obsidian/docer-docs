@@ -50,6 +50,7 @@ export function NotesListScreen() {
       content: newContent,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isEncrypted: false,
     });
     setNewContent('');
     setShowAdd(false);

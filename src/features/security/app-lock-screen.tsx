@@ -231,7 +231,7 @@ export function AppLockSetup() {
             <Text style={{ fontSize: 16, fontWeight: '600', color: c.text }}>Hidden Documents</Text>
           </View>
           <Text style={{ fontSize: 13, color: c.textSecondary, marginBottom: 8 }}>
-            Hide sensitive documents from the main library. Hidden documents can be viewed by enabling "Show Hidden" in the library filter.
+            Hide sensitive documents from the main library. Hidden documents can be viewed by enabling &quot;Show Hidden&quot; in the library filter.
           </Text>
           <View style={{ backgroundColor: c.surface, borderRadius: 12, padding: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -239,7 +239,7 @@ export function AppLockSetup() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }}>How to Hide</Text>
                 <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>
-                  Long press any document → Properties → Toggle "Hidden"
+                  Long press any document → Properties → Toggle &quot;Hidden&quot;
                 </Text>
               </View>
             </View>
@@ -258,7 +258,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState('');
   const [showPinFallback, setShowPinFallback] = useState(false);
-  const [biometricAttempted, setBiometricAttempted] = useState(false);
+  const [, setBiometricAttempted] = useState(false);
   const [biometricLockout, setBiometricLockout] = useState(false);
 
   const handleBiometric = useCallback(async (silent?: boolean) => {
@@ -289,6 +289,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (locked && appLockEnabled && appLockType === 'biometric') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       handleBiometric();
     }
   }, [locked, appLockEnabled, appLockType, handleBiometric]);

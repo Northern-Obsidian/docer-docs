@@ -28,6 +28,7 @@ export function AddNoteModal({ visible, documentId, page, onClose, onSaved }: Ad
       content: content.trim(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isEncrypted: false,
     });
     setContent('');
     onSaved();
