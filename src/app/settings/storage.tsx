@@ -34,9 +34,7 @@ export default function StorageScreen() {
     setDeviceStatsLoading(false);
   };
 
-  useEffect(() => { startTransition(() => { load(); }); }, []);
-
-  useEffect(() => { loadDeviceStats(); }, []);
+  useEffect(() => { startTransition(() => { load(); loadDeviceStats(); }); }, []);
 
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
