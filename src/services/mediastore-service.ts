@@ -108,7 +108,7 @@ export async function scanDeviceDocuments(): Promise<number> {
     getImages(sort),
   ]);
 
-  const allItems: Array<DocumentItem | ImageItem> = [];
+  const allItems: (DocumentItem | ImageItem)[] = [];
   if (docResult.status === 'fulfilled') allItems.push(...docResult.value);
   if (imgResult.status === 'fulfilled') allItems.push(...imgResult.value);
 

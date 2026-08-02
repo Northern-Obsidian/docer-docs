@@ -61,7 +61,7 @@ export default function RootLayout() {
       }
     });
     setupNotifications();
-  }, [loadFromStorage, loadSettings]);
+  }, [loadFromStorage, loadSettings, refreshLibrary]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
