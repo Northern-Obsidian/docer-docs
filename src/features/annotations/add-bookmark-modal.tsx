@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { X, Bookmark, ChevronDown, FolderOpen } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
@@ -92,7 +93,7 @@ export function AddBookmarkModal({ visible, documentId, page, onClose, onSaved }
                 >
                   <Text style={{ fontSize: 14, color: selectedFolderId === null ? c.primary : c.text }}>No folder</Text>
                 </TouchableOpacity>
-                <FlatList
+                <FlashList
                   data={folders}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item }) => (

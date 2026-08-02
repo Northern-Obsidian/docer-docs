@@ -1,5 +1,5 @@
 import {
-  getDocuments, requestPermissions, checkPermissions,
+  getDocuments, getImages, getByUri, requestPermissions, checkPermissions,
   getStatistics, getRecent, getDuplicates, getFolderStatistics,
   getLargestFiles, search, refresh,
   useMediaChangeEvent,
@@ -9,12 +9,38 @@ import {
   type PaginationOptions, type MediaStoreStatistics,
   type DuplicateItem, type FolderStatistics,
   type SearchResult, type SearchOptions,
-  type MediaChangeEvent, type LibraryResult,
+  type MediaChangeEvent,
 } from '@obsidian_north/react-native-mediastore';
-import { importFile } from '@/services/import-service';
+import { importFile, EXTENSION_TYPE_MAP } from '@/services/import-service';
 import { getDb } from '@/db/connection';
 import { getDocumentByPath } from '@/db/documents';
 import type { Document } from '@/types';
+
+const SUPPORTED_EXTENSIONS = new Set(Object.keys(EXTENSION_TYPE_MAP));
+
+function extractExtension(fileName: string): string {
+  const lastDot = fileName.lastIndexOf('.');
+  return lastDot >= 0 ? fileName.slice(lastDot + 1).toLowerCase() : '';
+}
+
+function isSupportedExtension(fileName: string): boolean {
+  const ext = extractExtension(fileName);
+  return ext !== '' && SUPPORTED_EXTENSIONS.has(ext);
+}
+
+function normalizeMediaItemName(item: AudioItem | VideoItem | ImageItem | DocumentItem): string {
+  if ('name' in item && item.name) {
+    return item.name;
+  }
+  if ('displayName' in item && item.displayName) {
+    return item.displayName;
+  }
+  if ('title' in item && item.title) {
+    const extMatch = item.uri.match(/\.([^./]+)$/);
+    return extMatch ? `${item.title}.${extMatch[1]}` : item.title;
+  }
+  return item.uri.split('/').pop() || 'file';
+}
 
 export { requestPermissions, useMediaChangeEvent, SortField, SortOrder };
 
@@ -22,7 +48,7 @@ export type {
   DocumentItem, AudioItem, VideoItem, ImageItem,
   SortOptions, FilterOptions, PaginationOptions,
   MediaStoreStatistics, DuplicateItem, FolderStatistics,
-  SearchResult, SearchOptions, MediaChangeEvent, LibraryResult,
+  SearchResult, SearchOptions, MediaChangeEvent,
 };
 
 export interface MediaStoreDocument extends DocumentItem {
@@ -75,18 +101,53 @@ export async function scanDeviceDocuments(): Promise<number> {
   const granted = await ensurePermissions();
   if (!granted) return 0;
 
-  const items = await getDocuments({ field: SortField.DateAdded, order: SortOrder.Descending });
-  const db = await getDb();
+  const sort: SortOptions = { field: SortField.DateAdded, order: SortOrder.Descending };
 
+  const [docResult, imgResult] = await Promise.allSettled([
+    getDocuments(sort),
+    getImages(sort),
+  ]);
+
+  const allItems: Array<DocumentItem | ImageItem> = [];
+  if (docResult.status === 'fulfilled') allItems.push(...docResult.value);
+  if (imgResult.status === 'fulfilled') allItems.push(...imgResult.value);
+
+  const db = await getDb();
   let imported = 0;
-  for (const item of items) {
+
+  for (const item of allItems) {
+    const fileName = normalizeMediaItemName(item);
+    if (!isSupportedExtension(fileName)) continue;
+
     const existing = await getDocumentByPath(db, item.uri);
     if (!existing) {
-      const doc = await importFile(item.uri, item.name, item.mimeType || null);
+      const doc = await importFile(item.uri, fileName, item.mimeType || null);
       if (doc) imported++;
     }
   }
+
   return imported;
+}
+
+export async function importAddedMediaEvent(event: MediaChangeEvent): Promise<Document | null> {
+  if (event.type !== 'added') return null;
+  if (event.mediaType !== 'document' && event.mediaType !== 'image') return null;
+
+  try {
+    const item = await getByUri(event.uri);
+    if (!item) return null;
+
+    const db = await getDb();
+    const existing = await getDocumentByPath(db, event.uri);
+    if (existing) return existing;
+
+    const fileName = normalizeMediaItemName(item);
+    if (!isSupportedExtension(fileName)) return null;
+
+    return importFile(event.uri, fileName, item.mimeType || null);
+  } catch {
+    return null;
+  }
 }
 
 export async function hasMediaStorePermissions(): Promise<boolean> {

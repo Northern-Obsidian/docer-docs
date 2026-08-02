@@ -29,6 +29,7 @@ export async function insertDocument(db: SQLiteDatabase, doc: Omit<Document, 'ad
 export async function updateDocument(db: SQLiteDatabase, id: string, updates: Partial<Document>): Promise<void> {
   const fields: string[] = [];
   const values: (string | number | null)[] = [];
+  if (updates.path !== undefined) { fields.push('path = ?'); values.push(updates.path); }
   if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
   if (updates.type !== undefined) { fields.push('type = ?'); values.push(updates.type); }
   if (updates.pageCount !== undefined) { fields.push('page_count = ?'); values.push(updates.pageCount); }

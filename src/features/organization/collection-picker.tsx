@@ -1,5 +1,6 @@
 import { useEffect, useState, startTransition } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { X, FolderOpen, Check } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -55,7 +56,7 @@ export function CollectionPicker({ visible, documentId, onClose }: CollectionPic
             <Text style={{ fontSize: 18, fontWeight: '600', color: c.text }}>Add to Collection</Text>
             <TouchableOpacity onPress={onClose} accessibilityLabel="Close" accessibilityRole="button"><X size={22} color={c.text} /></TouchableOpacity>
           </View>
-          <FlatList
+          <FlashList
             data={collections}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => {

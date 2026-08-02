@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, startTransition } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Modal, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { ArrowLeft, Folder, Plus, X, FolderOpen } from 'lucide-react-native';
 
@@ -79,11 +80,12 @@ export function CollectionsScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <FlashList
         data={collections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, flexGrow: 1 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 12, padding: 16, marginBottom: 8 }}

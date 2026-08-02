@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, startTransition } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, ScrollView, TextInput, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Bookmark, Trash2, FolderOpen, Plus, X, Pencil } from 'lucide-react-native';
@@ -94,29 +95,79 @@ export function BookmarksListScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 12 }}>
         <TouchableOpacity
           onPress={() => setSelectedFolderId(null)}
-          style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: selectedFolderId === null ? c.primary : c.surface }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 999,
+            backgroundColor: selectedFolderId === null ? c.primary : c.surface,
+            borderWidth: selectedFolderId === null ? 0 : 1,
+            borderColor: c.border,
+            minHeight: 36,
+          }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '500', color: selectedFolderId === null ? '#FFF' : c.textSecondary }}>All</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: selectedFolderId === null ? '#FFF' : c.textSecondary }}>All</Text>
+          {bookmarks.length > 0 && (
+            <View style={{
+              backgroundColor: selectedFolderId === null ? 'rgba(255,255,255,0.25)' : c.primaryContainer,
+              borderRadius: 12,
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+              marginLeft: 6,
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: selectedFolderId === null ? '#FFF' : c.primary }}>
+                {bookmarks.length}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
-        {folders.map((folder) => (
-          <TouchableOpacity
-            key={folder.id}
-            onPress={() => setSelectedFolderId(folder.id)}
-            style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: selectedFolderId === folder.id ? c.primary : c.surface }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '500', color: selectedFolderId === folder.id ? '#FFF' : c.textSecondary }}>{folder.name}</Text>
-          </TouchableOpacity>
-        ))}
+        {folders.map((folder) => {
+          const folderCount = bookmarks.filter((b) => b.folderId === folder.id).length;
+          return (
+            <TouchableOpacity
+              key={folder.id}
+              onPress={() => setSelectedFolderId(folder.id)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: selectedFolderId === folder.id ? c.primary : c.surface,
+                borderWidth: selectedFolderId === folder.id ? 0 : 1,
+                borderColor: c.border,
+                minHeight: 36,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '600', color: selectedFolderId === folder.id ? '#FFF' : c.textSecondary }}>{folder.name}</Text>
+              {folderCount > 0 && (
+                <View style={{
+                  backgroundColor: selectedFolderId === folder.id ? 'rgba(255,255,255,0.25)' : c.primaryContainer,
+                  borderRadius: 12,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginLeft: 6,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: selectedFolderId === folder.id ? '#FFF' : c.primary }}>
+                    {folderCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
-      <FlatList
+      <FlashList
         data={filteredBookmarks}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, flexGrow: 1 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         renderItem={({ item }) => (
           <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8 }} accessibilityLabel={`Bookmark: ${item.label}, ${item.documentName || 'Document'}, page ${item.page}`} accessibilityRole="button">
             <Bookmark size={20} color={c.primary} style={{ marginRight: 12 }} />
@@ -158,7 +209,7 @@ export function BookmarksListScreen() {
               </TouchableOpacity>
             </View>
 
-            <FlatList
+            <FlashList
               data={folders}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (

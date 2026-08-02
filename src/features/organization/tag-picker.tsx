@@ -1,5 +1,6 @@
 import { useEffect, useState, startTransition } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { X, Tag as TagIcon } from 'lucide-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -50,7 +51,7 @@ export function TagPicker({ visible, documentId, onClose }: TagPickerProps) {
             <Text style={{ fontSize: 18, fontWeight: '600', color: c.text }}>Assign Tags</Text>
             <TouchableOpacity onPress={onClose} accessibilityLabel="Close" accessibilityRole="button"><X size={22} color={c.text} /></TouchableOpacity>
           </View>
-          <FlatList
+          <FlashList
             data={tags}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => {

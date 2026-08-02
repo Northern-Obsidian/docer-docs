@@ -1,9 +1,8 @@
 import { File, Directory, Paths } from 'expo-file-system';
+import { Platform } from 'react-native';
 import { importFile, EXTENSION_TYPE_MAP } from '@/services/import-service';
 import { scanDeviceDocuments } from '@/services/mediastore-service';
-import { storage } from '@/storage';
 
-const SCAN_COMPLETE_KEY = 'auto_scan_complete';
 const SUPPORTED_EXTENSIONS = new Set(Object.keys(EXTENSION_TYPE_MAP));
 
 function isSupportedFile(file: File): boolean {
@@ -33,21 +32,25 @@ async function scanDirectory(directory: Directory): Promise<number> {
   return imported;
 }
 
-async function scanDocumentDirectory(): Promise<number> {
-  return scanDirectory(Paths.document);
+function getRootDirectory(): Directory {
+  if (Platform.OS === 'android') {
+    try {
+      return new Directory('file:///storage/emulated/0/');
+    } catch {
+      return Paths.document;
+    }
+  }
+  return Paths.document;
+}
+
+async function scanRootDirectory(): Promise<number> {
+  return scanDirectory(getRootDirectory());
 }
 
 export async function autoFetchOnLaunch(): Promise<number> {
-  const alreadyScanned = storage.getBoolean(SCAN_COMPLETE_KEY) ?? false;
-  if (!alreadyScanned) {
-    const count = await scanDeviceDocuments();
-    if (count === 0) {
-      await scanDocumentDirectory();
-    }
-    storage.set(SCAN_COMPLETE_KEY, true);
-    return count;
-  }
-  return 0;
+  const mediaStoreCount = await scanDeviceDocuments();
+  const rootCount = await scanRootDirectory();
+  return mediaStoreCount + rootCount;
 }
 
 export async function scanWithPicker(): Promise<number> {
@@ -58,8 +61,4 @@ export async function scanWithPicker(): Promise<number> {
     }
   } catch {}
   return 0;
-}
-
-export function hasScannedOnLaunch(): boolean {
-  return storage.getBoolean(SCAN_COMPLETE_KEY) ?? false;
 }

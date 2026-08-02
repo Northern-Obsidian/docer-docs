@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, startTransition } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { ArrowLeft, Highlighter, Trash2 } from 'lucide-react-native';
 
@@ -57,11 +58,12 @@ export function HighlightListScreen() {
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }} accessibilityLabel="Go back" accessibilityRole="button"><ArrowLeft size={24} color={c.text} /></TouchableOpacity>
         <Text style={{ fontSize: 24, fontWeight: '700', color: c.text }}>Highlights</Text>
       </View>
-      <FlatList
+      <FlashList
         data={highlights}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100, flexGrow: 1 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         renderItem={({ item }) => (
           <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8 }} accessibilityLabel={`Highlight: ${item.text}, page ${item.page}`} accessibilityRole="button">
             <View style={{ width: 4, height: 40, borderRadius: 2, backgroundColor: HIGHLIGHT_COLORS[item.color] || c.primary, marginRight: 12 }} />

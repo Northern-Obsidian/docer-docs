@@ -13,7 +13,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { THEME_COLORS } from '@/constants/theme-config';
 import { setupNotifications } from '@/services/notification-service';
 import { autoFetchOnLaunch } from '@/services/auto-fetch';
-import { requestPermissions, useMediaChangeEvent } from '@/services/mediastore-service';
+import { requestPermissions, useMediaChangeEvent, importAddedMediaEvent } from '@/services/mediastore-service';
 import { useLibraryStore } from '@/stores/library-store';
 import { appStorage } from '@/storage';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -37,7 +37,12 @@ export default function RootLayout() {
   const refreshLibrary = useLibraryStore((s) => s.refreshLibrary);
   const colors = THEME_COLORS[theme];
 
-  useMediaChangeEvent(() => {
+  useMediaChangeEvent((event) => {
+    if (event.type === 'added') {
+      importAddedMediaEvent(event).then((doc) => {
+        if (doc) refreshLibrary();
+      }).catch(() => {});
+    }
     refreshLibrary();
   });
 
@@ -50,7 +55,10 @@ export default function RootLayout() {
         try { await requestPermissions(); } catch {}
         appStorage.setOnboardingComplete(true);
       }
-      autoFetchOnLaunch();
+      const count = await autoFetchOnLaunch();
+      if (count > 0) {
+        refreshLibrary();
+      }
     });
     setupNotifications();
   }, [loadFromStorage, loadSettings]);

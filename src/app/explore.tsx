@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, useWindowDimensions, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, useWindowDimensions, Alert, ActivityIndicator } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { FileText, Grid3X3, List, Plus, FolderOpen, Tag, FileSpreadsheet, Presentation, Image as ImageIcon, FileArchive, Scan } from 'lucide-react-native';
@@ -121,13 +122,13 @@ export default function LibraryScreen() {
   };
 
   const gridColumnCount = width > 600 ? 3 : 2;
-  const gridItemWidth = (width - 40 - (gridColumnCount - 1) * 12) / gridColumnCount;
+  const gridItemWidth = (width - 40 - gridColumnCount * 12) / gridColumnCount;
 
   const renderGridItem = ({ item }: { item: Document }) => {
     const TypeIcon = getTypeIcon(item.type);
     return (
       <TouchableOpacity
-        style={{ width: gridItemWidth, backgroundColor: c.surface, borderRadius: 14, padding: 14, marginBottom: 12 }}
+        style={{ width: gridItemWidth, backgroundColor: c.surface, borderRadius: 14, padding: 14, marginBottom: 12, marginRight: viewMode === 'grid' ? 12 : 0 }}
         onPress={() => router.push(getReaderRoute(item.type, item.id))}
         onLongPress={() => { setSelectedDoc(item); setShowActions(true); }}
         accessibilityLabel={`${item.name}, ${item.type.toUpperCase()}${item.size ? `, ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}${favoriteIds.has(item.id) ? ', favorited' : ''}`}
@@ -202,25 +203,48 @@ export default function LibraryScreen() {
         </View>
       </View>
 
-      <FlatList
-        horizontal showsHorizontalScrollIndicator={false}
+      <FlashList
+        horizontal
+        showsHorizontalScrollIndicator={false}
         data={[{ type: 'all', count: 0 }, ...categories]}
         keyExtractor={(item) => item.type}
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 12 }}
         renderItem={({ item }) => {
           const active = selectedCategory === item.type || (!selectedCategory && item.type === 'all');
           return (
             <TouchableOpacity
-              style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: active ? c.primary : c.surface }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: active ? c.primary : c.surface,
+                borderWidth: active ? 0 : 1,
+                borderColor: c.border,
+                minHeight: 36,
+              }}
               onPress={() => setSelectedCategory(item.type === 'all' ? null : item.type)}
               accessibilityLabel={`Filter by ${item.type === 'all' ? 'all types' : item.type}`}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '500', color: active ? '#FFF' : c.textSecondary }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: active ? '#FFF' : c.textSecondary }}>
                 {item.type === 'all' ? 'All' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                {item.type !== 'all' ? ` (${item.count})` : ''}
               </Text>
+              {item.type !== 'all' && item.count > 0 && (
+                <View style={{
+                  backgroundColor: active ? 'rgba(255,255,255,0.25)' : c.primaryContainer,
+                  borderRadius: 12,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginLeft: 6,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: active ? '#FFF' : c.primary }}>
+                    {item.count}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         }}
@@ -247,13 +271,13 @@ export default function LibraryScreen() {
         </View>
       </View>
 
-      <FlatList
+      <FlashList
+        key={viewMode}
         data={documents}
         keyExtractor={(item) => item.id}
         numColumns={viewMode === 'grid' ? gridColumnCount : 1}
         renderItem={viewMode === 'grid' ? renderGridItem : renderListItem}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
-        columnWrapperStyle={viewMode === 'grid' ? { gap: 12 } : undefined}
         refreshing={isLoading}
         onRefresh={() => { fetchDocuments(); fetchCategories(); }}
         ListEmptyComponent={

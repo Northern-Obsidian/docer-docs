@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ArrowLeft, Folder, FileArchive, Search, Download, ChevronLeft, X } from 'lucide-react-native';
 
@@ -188,7 +189,7 @@ export default function ArchiveExplorerScreen() {
         </View>
       )}
 
-      <FlatList
+      <FlashList
         data={filteredEntries}
         keyExtractor={(item) => item.path}
         contentContainerStyle={{ padding: 12 }}

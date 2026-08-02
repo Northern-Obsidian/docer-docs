@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { ArrowLeft, Search as SearchIcon, X, FileText, Clock, FileSearch } from 'lucide-react-native';
 
@@ -98,7 +99,7 @@ export default function SearchScreen() {
       ) : isSearching ? (
         <LoadingState />
       ) : (
-        <FlatList
+        <FlashList
           data={results}
           keyExtractor={(item) => item.documentId + item.snippet}
           contentContainerStyle={{ paddingHorizontal: 20, flexGrow: 1 }}

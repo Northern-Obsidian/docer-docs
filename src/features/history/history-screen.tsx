@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Clock } from 'lucide-react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { getDb } from '@/db/connection';
@@ -23,7 +24,7 @@ export function HistoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <FlatList
+      <FlashList
         data={history}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}

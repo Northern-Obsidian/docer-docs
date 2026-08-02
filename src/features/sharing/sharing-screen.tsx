@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Share2, FileText, FileSpreadsheet, Presentation, Image as ImageIcon, FileArchive } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 
@@ -81,7 +82,7 @@ export function SharingScreen() {
         </View>
       )}
 
-      <FlatList
+      <FlashList
         data={documents}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, paddingBottom: 100 }}

@@ -1,7 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import { getDb } from '@/db/connection';
-import { insertDocument, getDocumentByPath } from '@/db/documents';
+import { insertDocument, getDocumentByPath, updateDocument } from '@/db/documents';
 import { indexDocumentContent } from '@/db/content-index';
 import type { Document, DocumentType } from '@/types';
 
@@ -25,6 +25,36 @@ function getDocumentType(fileName: string): DocumentType {
   return EXTENSION_TYPE_MAP[ext] || 'unknown';
 }
 
+function isContentUri(uri: string): boolean {
+  return uri.startsWith('content://');
+}
+
+function getLocalStorageName(uri: string, fileName: string): string {
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  let hash = 0;
+  for (let i = 0; i < uri.length; i++) {
+    hash = ((hash << 5) - hash) + uri.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return `${Math.abs(hash).toString(36)}_${safeName}`;
+}
+
+async function copyContentUriToLocal(uri: string, fileName: string): Promise<string | null> {
+  try {
+    const source = new File(uri);
+    const info = await source.info();
+    if (!info.exists) return null;
+
+    const localName = getLocalStorageName(uri, fileName);
+    const localFile = new File(Paths.document, localName);
+    const buffer = await source.arrayBuffer();
+    await localFile.write(new Uint8Array(buffer));
+    return localFile.uri;
+  } catch {
+    return null;
+  }
+}
+
 export async function pickAndImportDocument(): Promise<Document | null> {
   const result = await DocumentPicker.getDocumentAsync({
     type: '*/*',
@@ -42,7 +72,16 @@ export async function importFile(uri: string, fileName: string, mimeType: string
     const db = await getDb();
 
     const existing = await getDocumentByPath(db, uri);
-    if (existing) return existing;
+    if (existing) {
+      if (isContentUri(existing.path)) {
+        const localPath = await copyContentUriToLocal(existing.path, existing.name);
+        if (localPath) {
+          await updateDocument(db, existing.id, { path: localPath });
+          existing.path = localPath;
+        }
+      }
+      return existing;
+    }
 
     const file = new File(uri);
     const info = await file.info();
@@ -52,10 +91,20 @@ export async function importFile(uri: string, fileName: string, mimeType: string
     const id = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const now = new Date().toISOString();
 
+    let localPath = uri;
+    if (isContentUri(uri)) {
+      const copied = await copyContentUriToLocal(uri, fileName);
+      if (copied) {
+        const existingLocal = await getDocumentByPath(db, copied);
+        if (existingLocal) return existingLocal;
+        localPath = copied;
+      }
+    }
+
     const doc: Document = {
       id,
       name: fileName,
-      path: uri,
+      path: localPath,
       type,
       mimeType,
       size: info.size || 0,
@@ -71,7 +120,7 @@ export async function importFile(uri: string, fileName: string, mimeType: string
 
     await insertDocument(db, doc);
 
-    indexDocumentContent(db, id, uri, type).catch(() => {});
+    indexDocumentContent(db, id, localPath, type).catch(() => {});
 
     return doc;
   } catch {
