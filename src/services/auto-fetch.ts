@@ -3,7 +3,11 @@ import { Platform } from 'react-native';
 import { importFile, EXTENSION_TYPE_MAP } from '@/services/import-service';
 import { scanDeviceDocuments } from '@/services/mediastore-service';
 
-const SUPPORTED_EXTENSIONS = new Set(Object.keys(EXTENSION_TYPE_MAP));
+const SUPPORTED_EXTENSIONS = new Set(
+  Object.entries(EXTENSION_TYPE_MAP)
+    .filter(([, type]) => type !== 'image')
+    .map(([ext]) => ext)
+);
 
 function isSupportedFile(file: File): boolean {
   const ext = file.extension.toLowerCase().replace('.', '');

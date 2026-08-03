@@ -16,6 +16,14 @@ import { getBookmarkByPage, deleteBookmarkByPage } from '@/db/bookmarks';
 
 type TextRenderMode = 'plain' | 'highlighted' | 'markdown';
 
+function getHtmlSourceUri(path: string): string {
+  return path.startsWith('file://') ? path : `file://${path}`;
+}
+
+function getHtmlBaseUrl(path: string): string {
+  return getHtmlSourceUri(path).replace(/[^/]+$/, '');
+}
+
 export default function TextReaderScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,6 +38,7 @@ export default function TextReaderScreen() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [wordWrap, setWordWrap] = useState(true);
   const [showLineNumbers, setShowLineNumbers] = useState(false);
+  const [htmlFilePath, setHtmlFilePath] = useState<string | null>(null);
   const isDark = useThemeStore((s) => s.theme !== 'light');
   const webViewRef = useRef<WebView>(null);
 
@@ -59,6 +68,11 @@ export default function TextReaderScreen() {
       }
 
       const ext = doc.name.split('.').pop() || '';
+      if (['html', 'htm'].includes(ext)) {
+        setHtmlFilePath(doc.path);
+        setLoading(false);
+        return;
+      }
       if (['md', 'mdx'].includes(ext)) {
         setRawText(text);
         setRenderMode('markdown');
@@ -129,7 +143,24 @@ export default function TextReaderScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <WebView ref={webViewRef} source={{ html: content || '' }} style={{ flex: 1, backgroundColor: 'transparent' }} javaScriptEnabled={false} />
+      {htmlFilePath ? (
+        <WebView
+          ref={webViewRef}
+          source={{ uri: getHtmlSourceUri(htmlFilePath), baseUrl: getHtmlBaseUrl(htmlFilePath) }}
+          style={{ flex: 1, backgroundColor: 'transparent' }}
+          javaScriptEnabled
+          domStorageEnabled
+          allowFileAccess
+          startInLoadingState
+          renderLoading={() => (
+            <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="large" color={c.primary} />
+            </View>
+          )}
+        />
+      ) : (
+        <WebView ref={webViewRef} source={{ html: content || '' }} style={{ flex: 1, backgroundColor: 'transparent' }} javaScriptEnabled={false} />
+      )}
 
       {id && (
         <>

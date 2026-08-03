@@ -1,10 +1,11 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
-import { Search, X } from 'lucide-react-native';
 
+import Pdf, { type PdfRef } from './pdf-native';
 import { getViewerHtml, getPdfSourceUri } from './pdf-engine';
 import { useTheme } from '@/hooks/use-theme';
+import { useReaderStore } from '@/stores/reader-store';
 
 export interface PdfViewerActions {
   goToPage: (page: number) => void;
@@ -12,6 +13,8 @@ export interface PdfViewerActions {
   zoomOut: () => void;
   toggleSearch: () => void;
   toggleThumbnails: () => void;
+  enableSelection: () => void;
+  switchToNative: () => void;
 }
 
 interface PdfViewerProps {
@@ -20,8 +23,9 @@ interface PdfViewerProps {
   onError?: (error: string) => void;
   onTextSelection?: (text: string) => void;
   actionRef?: React.MutableRefObject<PdfViewerActions | null>;
-  showThumbnails?: boolean;
 }
+
+type ViewerMode = 'native' | 'engine';
 
 const TEXT_SELECTION_JS = `
   (function() {
@@ -39,50 +43,120 @@ const TEXT_SELECTION_JS = `
   })();
 `;
 
-export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, showThumbnails }: PdfViewerProps) {
+export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef }: PdfViewerProps) {
   const c = useTheme();
-  const ref = useRef<WebView>(null);
   const uri = getPdfSourceUri(path);
+
+  const currentPage = useReaderStore((s) => s.currentPage);
+  const zoom = useReaderStore((s) => s.zoom);
+  const setCurrentPage = useReaderStore((s) => s.setCurrentPage);
+  const setTotalPages = useReaderStore((s) => s.setTotalPages);
+  const setZoom = useReaderStore((s) => s.setZoom);
+  const toggleThumbnails = useReaderStore((s) => s.toggleThumbnails);
+
+  const [mode, setMode] = useState<ViewerMode>(() => (Platform.OS === 'web' ? 'engine' : 'native'));
   const [html, setHtml] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults] = useState<{ page: number; snippet: string }[]>([]);
-  const [searchResultCount] = useState(0);
+  const nativeRef = useRef<PdfRef | null>(null);
+  const engineRef = useRef<WebView>(null);
+  const pendingAction = useRef<'search' | null>(null);
+  const modeRef = useRef<ViewerMode>(mode);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
     getViewerHtml().then(setHtml);
   }, []);
 
+  const switchToNative = useCallback(() => {
+    pendingAction.current = null;
+    if (modeRef.current !== 'native' && Platform.OS !== 'web') setMode('native');
+  }, []);
+
+  const switchToEngine = useCallback((action: 'search' | null) => {
+    pendingAction.current = action;
+    setMode('engine');
+  }, []);
+
   useEffect(() => {
     if (actionRef) {
       actionRef.current = {
-        goToPage: (page: number) => ref.current?.postMessage(JSON.stringify({ type: 'go', page })),
-        zoomIn: () => ref.current?.postMessage(JSON.stringify({ type: 'zi' })),
-        zoomOut: () => ref.current?.postMessage(JSON.stringify({ type: 'zo' })),
-        toggleSearch: () => ref.current?.postMessage(JSON.stringify({ type: 'search' })),
-        toggleThumbnails: () => ref.current?.postMessage(JSON.stringify({ type: 'thumbnails' })),
+        goToPage: (page: number) => {
+          if (modeRef.current === 'native') {
+            nativeRef.current?.setPage(page);
+            setCurrentPage(page);
+          } else {
+            engineRef.current?.postMessage(JSON.stringify({ type: 'go', page }));
+          }
+        },
+        zoomIn: () => {
+          if (modeRef.current === 'native') {
+            setZoom(Math.min(5, Math.round((zoom + 0.25) * 100) / 100));
+          } else {
+            engineRef.current?.postMessage(JSON.stringify({ type: 'zi' }));
+          }
+        },
+        zoomOut: () => {
+          if (modeRef.current === 'native') {
+            setZoom(Math.max(0.5, Math.round((zoom - 0.25) * 100) / 100));
+          } else {
+            engineRef.current?.postMessage(JSON.stringify({ type: 'zo' }));
+          }
+        },
+        toggleSearch: () => {
+          if (modeRef.current === 'native') {
+            switchToEngine('search');
+          } else {
+            engineRef.current?.postMessage(JSON.stringify({ type: 'search' }));
+          }
+        },
+        toggleThumbnails: () => {
+          if (modeRef.current === 'native') {
+            toggleThumbnails();
+          } else {
+            engineRef.current?.postMessage(JSON.stringify({ type: 'thumbnails' }));
+          }
+        },
+        enableSelection: () => {
+          if (modeRef.current !== 'engine') switchToEngine(null);
+        },
+        switchToNative,
       };
     }
-  }, [actionRef]);
+  }, [actionRef, zoom, setCurrentPage, setZoom, toggleThumbnails, switchToEngine, switchToNative]);
 
-  const handleMessage = useCallback((event: WebViewMessageEvent) => {
+  const handleEngineMessage = useCallback((event: WebViewMessageEvent) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === 'loaded') { onLoad?.(msg.pages); }
+      if (msg.type === 'loaded') { onLoad?.(msg.pages); setTotalPages(msg.pages); }
       if (msg.type === 'error') onError?.(msg.message);
       if (msg.type === 'selection') onTextSelection?.(msg.text);
-      if (msg.type === 'searchToggled') setSearchOpen(msg.open);
+      if (msg.type === 'searchToggled') {
+        if (msg.open === false && Platform.OS !== 'web') switchToNative();
+      }
+      if (msg.type === 'pageChanged') setCurrentPage(msg.page);
     } catch {}
-  }, [onLoad, onError, onTextSelection]);
+  }, [onLoad, onError, onTextSelection, setTotalPages, setCurrentPage, switchToNative]);
 
-  const handleSearchQuery = useCallback((text: string) => {
-    setSearchQuery(text);
-    ref.current?.postMessage(JSON.stringify({ type: 'searchQuery', query: text }));
-  }, []);
+  const handleNativeLoadComplete = useCallback((numberOfPages: number) => {
+    setTotalPages(numberOfPages);
+    onLoad?.(numberOfPages);
+  }, [setTotalPages, onLoad]);
 
-  const goToSearchResult = useCallback((page: number) => {
-    ref.current?.postMessage(JSON.stringify({ type: 'go', page }));
-  }, []);
+  const handleNativeError = useCallback((error: object) => {
+    const message = (error as { message?: string })?.message || String(error);
+    onError?.(message);
+  }, [onError]);
+
+  const handleEngineLoadEnd = useCallback(() => {
+    engineRef.current?.postMessage(JSON.stringify({ type: 'load', url: uri }));
+    engineRef.current?.injectJavaScript(TEXT_SELECTION_JS);
+    if (pendingAction.current === 'search') {
+      pendingAction.current = null;
+      setTimeout(() => engineRef.current?.postMessage(JSON.stringify({ type: 'search' })), 150);
+    }
+  }, [uri]);
 
   if (!html) {
     return (
@@ -93,59 +167,43 @@ export function PdfViewer({ path, onLoad, onError, onTextSelection, actionRef, s
     );
   }
 
+  if (mode === 'native') {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.readerBackground }}>
+        <Pdf
+          ref={nativeRef}
+          source={{ uri }}
+          page={currentPage}
+          scale={zoom}
+          minScale={0.5}
+          maxScale={5}
+          fitPolicy={0}
+          enableDoubleTapZoom
+          trustAllCerts
+          onLoadComplete={handleNativeLoadComplete}
+          onPageChanged={(page) => setCurrentPage(page)}
+          onScaleChanged={(scale) => setZoom(Math.round(scale * 100) / 100)}
+          onError={handleNativeError}
+          style={{ flex: 1, backgroundColor: c.readerBackground }}
+          renderActivityIndicator={() => (
+            <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="large" color={c.primary} />
+              <Text style={{ color: c.textSecondary, marginTop: 12, fontSize: 14 }}>Loading PDF...</Text>
+            </View>
+          )}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: c.readerBackground }}>
-      {searchOpen && (
-        <View style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
-          backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
-          paddingHorizontal: 12, paddingVertical: 8,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Search size={18} color={c.textSecondary} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={handleSearchQuery}
-              placeholder="Search in document..."
-              placeholderTextColor={c.textTertiary}
-              style={{ flex: 1, fontSize: 15, color: c.text, paddingVertical: 6 }}
-              autoFocus
-            />
-            <TouchableOpacity onPress={() => ref.current?.postMessage(JSON.stringify({ type: 'search' }))}>
-              <X size={20} color={c.textSecondary} />
-            </TouchableOpacity>
-          </View>
-          {searchResultCount > 0 && (
-            <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>
-              {searchResultCount} result{searchResultCount !== 1 ? 's' : ''} found
-            </Text>
-          )}
-          {searchResults.length > 0 && (
-            <ScrollView style={{ maxHeight: 160 }} showsVerticalScrollIndicator>
-              {searchResults.map((r, i) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => goToSearchResult(r.page)}
-                  style={{ paddingVertical: 4 }}
-                >
-                  <Text style={{ fontSize: 12, color: c.primary }}>Page {r.page}</Text>
-                  <Text style={{ fontSize: 12, color: c.textSecondary }} numberOfLines={1}>{r.snippet}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      )}
-
       <WebView
-        ref={ref}
+        ref={engineRef}
         source={{ html }}
         style={{ flex: 1, backgroundColor: 'transparent' }}
-        onMessage={handleMessage}
-        onLoadEnd={() => {
-          ref.current?.postMessage(JSON.stringify({ type: 'load', url: uri }));
-          ref.current?.injectJavaScript(TEXT_SELECTION_JS);
-        }}
+        onMessage={handleEngineMessage}
+        onLoadEnd={handleEngineLoadEnd}
         javaScriptEnabled
         domStorageEnabled
         startInLoadingState

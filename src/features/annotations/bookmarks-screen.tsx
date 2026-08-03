@@ -95,19 +95,19 @@ export function BookmarksListScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 12 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingVertical: 2, marginBottom: 16 }}>
         <TouchableOpacity
           onPress={() => setSelectedFolderId(null)}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
+            paddingHorizontal: 18,
+            paddingVertical: 10,
             borderRadius: 999,
             backgroundColor: selectedFolderId === null ? c.primary : c.surface,
             borderWidth: selectedFolderId === null ? 0 : 1,
             borderColor: c.border,
-            minHeight: 36,
+            minHeight: 38,
           }}
         >
           <Text style={{ fontSize: 13, fontWeight: '600', color: selectedFolderId === null ? '#FFF' : c.textSecondary }}>All</Text>
@@ -134,13 +134,13 @@ export function BookmarksListScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: 16,
-                paddingVertical: 8,
+                paddingHorizontal: 18,
+                paddingVertical: 10,
                 borderRadius: 999,
                 backgroundColor: selectedFolderId === folder.id ? c.primary : c.surface,
                 borderWidth: selectedFolderId === folder.id ? 0 : 1,
                 borderColor: c.border,
-                minHeight: 36,
+                minHeight: 38,
               }}
             >
               <Text style={{ fontSize: 13, fontWeight: '600', color: selectedFolderId === folder.id ? '#FFF' : c.textSecondary }}>{folder.name}</Text>
@@ -169,16 +169,16 @@ export function BookmarksListScreen() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         renderItem={({ item }) => (
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 12, padding: 14, marginBottom: 8 }} accessibilityLabel={`Bookmark: ${item.label}, ${item.documentName || 'Document'}, page ${item.page}`} accessibilityRole="button">
-            <Bookmark size={20} color={c.primary} style={{ marginRight: 12 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: 10, padding: 10, marginBottom: 6 }} accessibilityLabel={`Bookmark: ${item.label}, ${item.documentName || 'Document'}, page ${item.page}`} accessibilityRole="button">
+            <Bookmark size={16} color={c.primary} style={{ marginRight: 8 }} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '500', color: c.text }}>{item.label}</Text>
-              <Text style={{ fontSize: 12, color: c.textSecondary, marginTop: 2 }}>
+              <Text style={{ fontSize: 13, fontWeight: '500', color: c.text }} numberOfLines={1}>{item.label}</Text>
+              <Text style={{ fontSize: 11, color: c.textSecondary, marginTop: 1 }}>
                 {item.documentName || 'Document'} · Page {item.page}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 8 }} accessibilityLabel={`Delete bookmark ${item.label}`} accessibilityRole="button">
-              <Trash2 size={18} color={c.textSecondary} />
+            <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 6 }} accessibilityLabel={`Delete bookmark ${item.label}`} accessibilityRole="button">
+              <Trash2 size={16} color={c.textSecondary} />
             </TouchableOpacity>
           </View>
         )}

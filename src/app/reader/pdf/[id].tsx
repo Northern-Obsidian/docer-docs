@@ -134,6 +134,7 @@ export default function PDFReaderScreen() {
     });
     setSelectedText('');
     setShowHighlightToolbar(false);
+    actionsRef.current?.switchToNative();
   }, [id, selectedText, currentPage]);
 
   if (loading) {
@@ -164,7 +165,7 @@ export default function PDFReaderScreen() {
         onToggleThumbnails={() => actionsRef.current?.toggleThumbnails()}
         onToggleBookmark={handleToggleBookmark}
         onToggleSearch={() => actionsRef.current?.toggleSearch()}
-        onHighlight={() => setShowHighlightToolbar(true)}
+        onHighlight={() => actionsRef.current?.enableSelection()}
         onNote={() => setShowNoteModal(true)}
         onShare={handleShare}
       />
@@ -183,7 +184,6 @@ export default function PDFReaderScreen() {
           onLoad={handleLoad}
           onError={(e) => setError(e)}
           onTextSelection={handleTextSelection}
-          showThumbnails={showThumbnails}
         />
       </View>
 
@@ -203,7 +203,7 @@ export default function PDFReaderScreen() {
         visible={showHighlightToolbar}
         selectedText={selectedText}
         onHighlight={handleHighlight}
-        onDismiss={() => { setShowHighlightToolbar(false); setSelectedText(''); }}
+        onDismiss={() => { setShowHighlightToolbar(false); setSelectedText(''); actionsRef.current?.switchToNative(); }}
       />
 
       {id && (

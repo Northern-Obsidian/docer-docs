@@ -1,5 +1,5 @@
 import {
-  getDocuments, getImages, getByUri, requestPermissions, checkPermissions,
+  getDocuments, getByUri, requestPermissions, checkPermissions,
   getStatistics, getRecent, getDuplicates, getFolderStatistics,
   getLargestFiles, search, refresh,
   useMediaChangeEvent,
@@ -16,7 +16,11 @@ import { getDb } from '@/db/connection';
 import { getDocumentByPath } from '@/db/documents';
 import type { Document } from '@/types';
 
-const SUPPORTED_EXTENSIONS = new Set(Object.keys(EXTENSION_TYPE_MAP));
+const SUPPORTED_EXTENSIONS = new Set(
+  Object.entries(EXTENSION_TYPE_MAP)
+    .filter(([, type]) => type !== 'image')
+    .map(([ext]) => ext)
+);
 
 function extractExtension(fileName: string): string {
   const lastDot = fileName.lastIndexOf('.');
@@ -103,19 +107,15 @@ export async function scanDeviceDocuments(): Promise<number> {
 
   const sort: SortOptions = { field: SortField.DateAdded, order: SortOrder.Descending };
 
-  const [docResult, imgResult] = await Promise.allSettled([
-    getDocuments(sort),
-    getImages(sort),
-  ]);
-
-  const allItems: (DocumentItem | ImageItem)[] = [];
-  if (docResult.status === 'fulfilled') allItems.push(...docResult.value);
-  if (imgResult.status === 'fulfilled') allItems.push(...imgResult.value);
+  let docResult: DocumentItem[] = [];
+  try {
+    docResult = await getDocuments(sort);
+  } catch {}
 
   const db = await getDb();
   let imported = 0;
 
-  for (const item of allItems) {
+  for (const item of docResult) {
     const fileName = normalizeMediaItemName(item);
     if (!isSupportedExtension(fileName)) continue;
 
@@ -131,7 +131,7 @@ export async function scanDeviceDocuments(): Promise<number> {
 
 export async function importAddedMediaEvent(event: MediaChangeEvent): Promise<Document | null> {
   if (event.type !== 'added') return null;
-  if (event.mediaType !== 'document' && event.mediaType !== 'image') return null;
+  if (event.mediaType !== 'document') return null;
 
   try {
     const item = await getByUri(event.uri);

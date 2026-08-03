@@ -121,29 +121,29 @@ export default function LibraryScreen() {
     if (doc) { fetchDocuments(); fetchCategories(); }
   };
 
-  const gridColumnCount = width > 600 ? 3 : 2;
+  const gridColumnCount = width > 700 ? 4 : width > 420 ? 3 : 2;
   const gridItemWidth = (width - 40 - gridColumnCount * 12) / gridColumnCount;
 
   const renderGridItem = ({ item }: { item: Document }) => {
     const TypeIcon = getTypeIcon(item.type);
     return (
       <TouchableOpacity
-        style={{ width: gridItemWidth, backgroundColor: c.surface, borderRadius: 14, padding: 14, marginBottom: 12, marginRight: viewMode === 'grid' ? 12 : 0 }}
+        style={{ width: gridItemWidth, backgroundColor: c.surface, borderRadius: 10, padding: 10, marginBottom: 8, marginRight: viewMode === 'grid' ? 12 : 0 }}
         onPress={() => router.push(getReaderRoute(item.type, item.id))}
         onLongPress={() => { setSelectedDoc(item); setShowActions(true); }}
         accessibilityLabel={`${item.name}, ${item.type.toUpperCase()}${item.size ? `, ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}${favoriteIds.has(item.id) ? ', favorited' : ''}`}
         accessibilityHint="Double tap to open, long press for actions"
         accessibilityRole="button"
       >
-        <View style={{ width: '100%', height: gridItemWidth * 1.3, borderRadius: 10, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <View style={{ width: '100%', height: gridItemWidth * 1.15, borderRadius: 8, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {item.thumbnailPath ? (
             <Image source={{ uri: item.thumbnailPath }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={200} />
           ) : (
-            <TypeIcon size={32} color={c.primary} />
+            <TypeIcon size={24} color={c.primary} />
           )}
         </View>
-        <Text style={{ fontSize: 13, fontWeight: '500', color: c.text, marginTop: 8 }} numberOfLines={2}>{item.name}</Text>
-        <Text style={{ fontSize: 11, color: c.textSecondary, marginTop: 2 }}>
+        <Text style={{ fontSize: 12, fontWeight: '500', color: c.text, marginTop: 6 }} numberOfLines={2}>{item.name}</Text>
+        <Text style={{ fontSize: 10, color: c.textSecondary, marginTop: 1 }}>
           {item.type.toUpperCase()} · {item.size ? `${(item.size / 1024 / 1024).toFixed(1)} MB` : '--'}
         </Text>
       </TouchableOpacity>
@@ -208,7 +208,7 @@ export default function LibraryScreen() {
         showsHorizontalScrollIndicator={false}
         data={[{ type: 'all', count: 0 }, ...categories]}
         keyExtractor={(item) => item.type}
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingVertical: 2, marginBottom: 16 }}
         renderItem={({ item }) => {
           const active = selectedCategory === item.type || (!selectedCategory && item.type === 'all');
           return (
@@ -216,13 +216,13 @@ export default function LibraryScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: 16,
-                paddingVertical: 8,
+                paddingHorizontal: 18,
+                paddingVertical: 10,
                 borderRadius: 999,
                 backgroundColor: active ? c.primary : c.surface,
                 borderWidth: active ? 0 : 1,
                 borderColor: c.border,
-                minHeight: 36,
+                minHeight: 38,
               }}
               onPress={() => setSelectedCategory(item.type === 'all' ? null : item.type)}
               accessibilityLabel={`Filter by ${item.type === 'all' ? 'all types' : item.type}`}
@@ -250,10 +250,10 @@ export default function LibraryScreen() {
         }}
       />
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 8 }}>
-        <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           {sortOptions.map((opt) => (
-            <TouchableOpacity key={opt.key} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: sortBy === opt.key ? c.primaryContainer : 'transparent' }}
+            <TouchableOpacity key={opt.key} style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: sortBy === opt.key ? c.primaryContainer : 'transparent' }}
               onPress={() => { if (sortBy === opt.key) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); else { setSortBy(opt.key); setSortOrder('desc'); } }}
               accessibilityLabel={`Sort by ${opt.label}${sortBy === opt.key ? `, currently ${sortOrder === 'asc' ? 'ascending' : 'descending'}` : ''}`}
               accessibilityRole="button"
