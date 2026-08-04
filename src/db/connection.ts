@@ -1,17 +1,16 @@
 import * as SQLite from 'expo-sqlite';
 
-let db: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDb(): Promise<SQLite.SQLiteDatabase> {
-  if (!db) {
-    db = await SQLite.openDatabaseAsync('docer.db');
+export function getDb(): Promise<SQLite.SQLiteDatabase> {
+  if (!dbPromise) {
+    dbPromise = SQLite.openDatabaseAsync('docer.db');
   }
-  return db;
+  return dbPromise;
 }
 
 export async function closeDb(): Promise<void> {
-  if (db) {
-    await db.closeAsync();
-    db = null;
-  }
+  const db = await getDb();
+  await db.closeAsync();
+  dbPromise = null;
 }
